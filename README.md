@@ -1,3 +1,9 @@
+Ceres Fork for Code Generation Development
+============
+
+This fork is used to implement and test new codegen modules. The stuff developed here is then submitted to Ceres via Gerrit.
+
+
 [![Build Status](https://travis-ci.org/ceres-solver/ceres-solver.svg?branch=master)](https://travis-ci.org/ceres-solver/ceres-solver)
 
 Ceres Solver
