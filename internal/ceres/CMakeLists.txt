@@ -392,7 +392,9 @@ if (BUILD_TESTING AND GFLAGS)
              ${Ceres_SOURCE_DIR}/internal/ceres
              ${CERES_LIBRARY_PRIVATE_DEPENDENCIES_INCLUDE_DIRS})
 
-    target_link_libraries(${NAME}_test PUBLIC test_util ceres gtest)
+    # Additional arguments to ceres_test can be used to pass in build dependencies.
+    # This is used i
+    target_link_libraries(${NAME}_test PUBLIC test_util ceres gtest ${ARGN})
     if (BUILD_SHARED_LIBS)
       # Define gtest-specific shared library flags for linking.
       append_target_property(${NAME}_test COMPILE_DEFINITIONS
@@ -497,14 +499,10 @@ if (BUILD_TESTING AND GFLAGS)
 
   add_subdirectory(generated_bundle_adjustment_tests)
 
-  if(CODE_GENERATION)
-    add_subdirectory(codegen)
-  endif()
-
 endif (BUILD_TESTING AND GFLAGS)
 
 macro(add_dependencies_to_benchmark BENCHMARK_TARGET)
-  target_link_libraries(${BENCHMARK_TARGET} PUBLIC ceres benchmark::benchmark)
+  target_link_libraries(${BENCHMARK_TARGET} PUBLIC ceres benchmark::benchmark ${ARGN})
   target_include_directories(${BENCHMARK_TARGET} PUBLIC
                              ${Ceres_SOURCE_DIR}/internal
                              ${CERES_LIBRARY_PRIVATE_DEPENDENCIES_INCLUDE_DIRS})
@@ -526,3 +524,7 @@ if (BUILD_BENCHMARKS)
   add_executable(schur_eliminator_benchmark schur_eliminator_benchmark.cc)
   add_dependencies_to_benchmark(schur_eliminator_benchmark)
 endif (BUILD_BENCHMARKS)
+
+if(CODE_GENERATION)
+  add_subdirectory(codegen)
+endif()

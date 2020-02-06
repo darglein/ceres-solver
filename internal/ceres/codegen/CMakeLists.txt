@@ -28,17 +28,18 @@
 #
 # Author: darius.rueckert@fau.de (Darius Rueckert)
 #
-# Testing the AutoDiffCodegen system is more complicated, because function- and
-# constructor calls have side-effects. In C++ the evaluation order and
-# the elision of copies is implementation defined. Between different compilers,
-# some expression might be evaluated in a different order or some copies might be
-# removed.
-#
-# Therefore, we run tests that expect a particular compiler behaviour only on gcc.
-#
-# The semantic tests, which check the correctness by executing the generated code
-# are still run on all platforms.
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+if (BUILD_TESTING AND GFLAGS)
+  # Testing the AutoDiffCodegen system is more complicated, because function- and
+  # constructor calls have side-effects. In C++ the evaluation order and
+  # the elision of copies is implementation defined. Between different compilers,
+  # some expression might be evaluated in a different order or some copies might be
+  # removed.
+  #
+  # Therefore, we run tests that expect a particular compiler behaviour only on gcc.
+  #
+  # The semantic tests, which check the correctness by executing the generated code
+  # are still run on all platforms.
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(CXX_FLAGS_OLD ${CMAKE_CXX_FLAGS})
     # From the man page:
     #   The C++ standard allows an implementation to omit creating a
@@ -54,4 +55,55 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     ceres_test(expression_ref)
     ceres_test(code_generator)
     set(CMAKE_CXX_FLAGS ${CXX_FLAGS_OLD})
+  endif()
+
+  macro (generate_test_functor FUNCTOR_NAME FUNCTOR_FILE)
+    ceres_generate_cost_function_implementation_for_functor(
+      NAME ${FUNCTOR_NAME}
+      INPUT_FILE ${FUNCTOR_FILE}
+      OUTPUT_DIRECTORY tests
+      NAMESPACE test
+      )
+  endmacro()
+
+  # Semantic tests should work on every platform
+  include(CeresCodeGeneration)
+
+
+  generate_test_functor(InputOutputAssignment autodiff_codegen_test.h)
+  generate_test_functor(CompileTimeConstants autodiff_codegen_test.h)
+  generate_test_functor(Assignments autodiff_codegen_test.h)
+  generate_test_functor(BinaryArithmetic autodiff_codegen_test.h)
+  generate_test_functor(UnaryArithmetic autodiff_codegen_test.h)
+  generate_test_functor(BinaryComparison autodiff_codegen_test.h)
+  generate_test_functor(LogicalOperators autodiff_codegen_test.h)
+  generate_test_functor(ScalarFunctions autodiff_codegen_test.h)
+  generate_test_functor(LogicalFunctions autodiff_codegen_test.h)
+  generate_test_functor(Branches autodiff_codegen_test.h)
+  ceres_test(autodiff_codegen
+    InputOutputAssignment CompileTimeConstants Assignments BinaryArithmetic
+    UnaryArithmetic BinaryComparison LogicalOperators ScalarFunctions
+    LogicalFunctions Branches
+    )
+
+  generate_test_functor(Projective gen_autodiff_test_functors.h)
+  generate_test_functor(Residual1Param gen_autodiff_test_functors.h)
+  generate_test_functor(Residual2Param gen_autodiff_test_functors.h)
+  generate_test_functor(Residual3Param gen_autodiff_test_functors.h)
+  generate_test_functor(Residual4Param gen_autodiff_test_functors.h)
+  ceres_test(gen_autodiff Projective Residual1Param Residual2Param Residual3Param Residual4Param)
+
+  generate_test_functor(RotatePoint snavely_reprojection_error.h)
+  generate_test_functor(SnavelyReprojectionErrorGen snavely_reprojection_error.h)
+  ceres_test(gen_reprojection_error RotatePoint SnavelyReprojectionErrorGen)
+endif()
+
+if (BUILD_BENCHMARKS)
+
+  generate_test_functor(Rat43CostFunctor rat43.h)
+  add_executable(gen_rat43_benchmark gen_rat43_benchmark.cc)
+  add_dependencies_to_benchmark(gen_rat43_benchmark Rat43CostFunctor)
+
+  add_executable(gen_ba_benchmark gen_ba_benchmark.cc)
+  add_dependencies_to_benchmark(gen_ba_benchmark RotatePoint SnavelyReprojectionErrorGen)
 endif()
