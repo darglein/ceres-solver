@@ -54,6 +54,7 @@ if (BUILD_TESTING AND GFLAGS)
     ceres_test(expression_graph)
     ceres_test(expression_ref)
     ceres_test(code_generator)
+    ceres_test(optimizer)
     set(CMAKE_CXX_FLAGS ${CXX_FLAGS_OLD})
   endif()
 

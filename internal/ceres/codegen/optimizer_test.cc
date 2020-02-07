@@ -27,24 +27,47 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 // Author: darius.rueckert@fau.de (Darius Rueckert)
+//
+#define CERES_CODEGEN
 
 #include "ceres/codegen/internal/optimizer.h"
 
-#include <cmath>
-#include <limits>
-#include <sstream>
+#include "ceres/codegen/internal/code_generator.h"
+#include "ceres/codegen/internal/expression_graph.h"
+#include "ceres/codegen/internal/expression_ref.h"
+#include "gtest/gtest.h"
 
-#include "assert.h"
-#include "glog/logging.h"
 namespace ceres {
 namespace internal {
 
-Optimizer::Optimizer(const Optimizer::Options& options) : options_(options) {}
+static void GenerateAndCheck(const ExpressionGraph& graph,
+                             const std::vector<std::string>& reference) {
+  Optimizer::Options optimizer_options;
+  Optimizer optimizer(optimizer_options);
+  auto opt = optimizer.run(graph);
 
-ExpressionGraph Optimizer::run(const ExpressionGraph& graph) {
-  ExpressionGraph g;
-  return g;
+  CodeGenerator::Options generator_options;
+  CodeGenerator gen(opt, generator_options);
+  auto code = gen.Generate();
+  //  EXPECT_EQ(code.size(), reference.size());
+
+  for (int i = 0; i < code.size(); ++i) {
+    std::cout << code[i] << std::endl;
+    //    EXPECT_EQ(code[i], reference[i]) << "Invalid Line: " << (i + 1);
+  }
 }
 
+using T = ExpressionRef;
+
+// Now we add one TEST for each ExpressionType.
+TEST(CodeGenerator, COMPILE_TIME_CONSTANT) {
+  StartRecordingExpressions();
+  T a = T(0);
+  T b = T(123.5);
+  MakeOutput(b, "residual[0]");
+
+  auto graph = StopRecordingExpressions();
+  GenerateAndCheck(graph, {});
+}
 }  // namespace internal
 }  // namespace ceres

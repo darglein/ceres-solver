@@ -27,45 +27,32 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 // Author: darius.rueckert@fau.de (Darius Rueckert)
-//
-#ifndef CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZER_H_
-#define CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZER_H_
 
-#include <memory>
-#include <string>
-#include <vector>
+#include "ceres/codegen/internal/optimizer.h"
 
-#include "ceres/codegen/internal/expression.h"
-#include "ceres/codegen/internal/expression_graph.h"
-#include "ceres/codegen/internal/optimization_pass.h"
+#include <cmath>
+#include <limits>
+#include <sstream>
 
+#include "assert.h"
+#include "glog/logging.h"
 namespace ceres {
 namespace internal {
 
-class Optimizer {
- public:
-  struct Options {
-    // Name of the function.
-    // Example:
-    //   bool Evaluate(const double* x, double* res)
-    std::string function_name = "";
+Optimizer::Optimizer(const Optimizer::Options& options) : options_(options) {
+  optimizaton_passes.emplace_back(new DeadCodeRemoval());
+  optimizaton_passes.emplace_back(new NopCleanup());
+}
 
-    // Number of spaces added for each level of indentation.
-    int indentation_spaces_per_level = 2;
+ExpressionGraph Optimizer::run(const ExpressionGraph& graph) {
+  ExpressionGraph g = graph;
 
-    // The prefix added to each variable name.
-    std::string variable_prefix = "v_";
-  };
+  for (auto& pass : optimizaton_passes) {
+    (*pass)(g);
+  }
 
-  Optimizer(const Options& options);
-  ExpressionGraph run(const ExpressionGraph& graph);
-
- private:
-  const Options options_;
-  std::vector<std::unique_ptr<OptimizationPass>> optimizaton_passes;
-};
+  return g;
+}
 
 }  // namespace internal
 }  // namespace ceres
-
-#endif  // CERES_PUBLIC_CODEGEN_INTERNAL_CODE_GENERATOR_H_
