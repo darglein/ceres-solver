@@ -46,11 +46,15 @@ Optimizer::Optimizer(const Optimizer::Options& options) : options_(options) {
 
 ExpressionGraph Optimizer::run(const ExpressionGraph& graph) {
   ExpressionGraph g = graph;
-
-  for (auto& pass : optimizaton_passes) {
-    (*pass)(g);
+  for (int it = 0; it < options_.max_iterations; ++it) {
+    double change = 0;
+    for (auto& pass : optimizaton_passes) {
+      change += (*pass)(g);
+    }
+    if (change == 0) {
+      break;
+    }
   }
-
   return g;
 }
 

@@ -45,16 +45,7 @@ namespace internal {
 class Optimizer {
  public:
   struct Options {
-    // Name of the function.
-    // Example:
-    //   bool Evaluate(const double* x, double* res)
-    std::string function_name = "";
-
-    // Number of spaces added for each level of indentation.
-    int indentation_spaces_per_level = 2;
-
-    // The prefix added to each variable name.
-    std::string variable_prefix = "v_";
+    int max_iterations = 100;
   };
 
   Optimizer(const Options& options);

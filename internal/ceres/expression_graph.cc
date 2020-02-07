@@ -169,8 +169,9 @@ ExpressionId ExpressionGraph::InsertBack(const Expression& expression) {
 }
 
 ExpressionId ExpressionGraph::FindMatchingEndif(ExpressionId id) const {
-  CHECK(ExpressionForId(id).type() == ExpressionType::IF)
-      << "FindClosingControlExpression is only valid on IF "
+  CHECK(ExpressionForId(id).type() == ExpressionType::IF ||
+        ExpressionForId(id).type() == ExpressionType::ELSE)
+      << "FindClosingControlExpression is only valid on IF and ELSE "
          "expressions.";
 
   // Traverse downwards

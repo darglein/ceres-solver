@@ -178,6 +178,8 @@ TEST(ExpressionGraph, FindMatchingEndif) {
 
   EXPECT_EQ(graph.FindMatchingEndif(3), 10);
   EXPECT_EQ(graph.FindMatchingEndif(4), 6);
+  EXPECT_EQ(graph.FindMatchingEndif(5), 6);
+  EXPECT_EQ(graph.FindMatchingEndif(7), 10);
   EXPECT_EQ(graph.FindMatchingEndif(8), 9);
   EXPECT_EQ(graph.FindMatchingEndif(11), kInvalidExpressionId);
 }
@@ -246,6 +248,38 @@ TEST(ExpressionGraph, InsertExpression_UpdateReferences) {
   ref.InsertBack(Expression::CreateCompileTimeConstant(10));
   ref.InsertBack(Expression::CreateBinaryArithmetic(
       "+", ExpressionId(1), ExpressionId(2)));
+  EXPECT_EQ(graph.Size(), ref.Size());
+  EXPECT_EQ(graph, ref);
+}
+
+TEST(ExpressionGraph, Erase) {
+  // This test checks if references to shifted expressions are updated
+  // accordingly.
+  ExpressionGraph graph;
+  graph.InsertBack(Expression::CreateCompileTimeConstant(42));
+  graph.InsertBack(Expression::CreateCompileTimeConstant(10));
+  graph.InsertBack(Expression::CreateCompileTimeConstant(3));
+  graph.InsertBack(Expression::CreateBinaryArithmetic(
+      "+", ExpressionId(0), ExpressionId(2)));
+  // Code:
+  // v_0 = 42
+  // v_1 = 10
+  // v_2 = 3
+  // v_3 = v_0 + v_2
+
+  // Erase the unused expression v_1 = 10
+  graph.Erase(1);
+  // This should shift all indices like this:
+  // v_0 = 42
+  // v_1 = 3
+  // v_2 = v_0 + v_1
+
+  // Test by inserting it in the correct order
+  ExpressionGraph ref;
+  ref.InsertBack(Expression::CreateCompileTimeConstant(42));
+  ref.InsertBack(Expression::CreateCompileTimeConstant(3));
+  ref.InsertBack(Expression::CreateBinaryArithmetic(
+      "+", ExpressionId(0), ExpressionId(1)));
   EXPECT_EQ(graph.Size(), ref.Size());
   EXPECT_EQ(graph, ref);
 }

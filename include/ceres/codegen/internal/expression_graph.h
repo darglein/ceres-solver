@@ -66,7 +66,8 @@ class ExpressionGraph {
 
   // Erases the expression at "location". All expression after "location" are
   // moved by one element to the front. References to moved expressions are
-  // updated.
+  // updated. Removing an expression that is still referenced somewhere is
+  // undefined behaviour.
   void Erase(ExpressionId location);
 
   // Insert a new expression at "location" into the graph. All expression
@@ -85,9 +86,9 @@ class ExpressionGraph {
   // <id> <expr>    FindMatchingEndif(id)
   //  0  IF         7
   //  1    IF       3
-  //  2    ELSE     -
+  //  2    ELSE     3
   //  3    ENDIF    -
-  //  4  ELSE       -
+  //  4  ELSE       7
   //  5    IF       6
   //  6    ENDIF    -
   //  7  ENDIF      -

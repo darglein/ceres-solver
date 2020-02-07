@@ -79,10 +79,6 @@ bool DeadCodeRemoval::unused(const ExpressionGraph& graph, ExpressionId id) {
     return false;
   }
 
-  if (expr.lhs_id() != id) {
-    return false;
-  }
-
   for (ExpressionId i = id + 1; i < graph.Size(); ++i) {
     auto& other = graph.ExpressionForId(i);
     if (other.DirectlyDependsOn(expr.lhs_id()) ||

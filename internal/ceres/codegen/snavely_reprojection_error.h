@@ -119,7 +119,8 @@ struct SnavelyReprojectionErrorGen
   double observed_y;
 };
 
-using SnavelyReprojectionAD = ceres::internal::CostFunctionToFunctor<SnavelyReprojectionErrorGen>;
+using SnavelyReprojectionAD =
+    ceres::internal::CostFunctionToFunctor<SnavelyReprojectionErrorGen>;
 
-}
+}  // namespace test
 #endif  // CERES_EXAMPLES_SNAVELY_REPROJECTION_ERROR_H_

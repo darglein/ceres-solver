@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2015 Google Inc. All rights reserved.
-// http://ceres-solver.org/
+// Copyright 2020 Google Inc. All rights reserved.
+// http://code.google.com/p/ceres-solver/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -26,47 +26,43 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-// Author: sameeragarwal@google.com (Sameer Agarwal)
+// Author: darius.rueckert@fau.de (Darius Rueckert)
 //
-// Templated struct implementing the camera model and residual
-// computation for bundle adjustment used by Noah Snavely's Bundler
-// SfM system. This is also the camera model/residual for the bundle
-// adjustment problems in the BAL dataset. It is templated so that we
-// can use Ceres's automatic differentiation to compute analytic
-// jacobians.
-//
-// For details see: http://phototour.cs.washington.edu/bundler/
-// and http://grail.cs.washington.edu/projects/bal/
+#ifndef CERES_PUBLIC_CODEGEN_CFG_H_
+#define CERES_PUBLIC_CODEGEN_CFG_H_
 
-#ifndef CERES_EXAMPLES_SNAVELY_REPROJECTION_ERROR3_H_
-#define CERES_EXAMPLES_SNAVELY_REPROJECTION_ERROR3_H_
+#include <string>
+#include <vector>
 
-#include "ceres/codegen/codegen_cost_function.h"
+#include "ceres/codegen/internal/expression.h"
+#include "ceres/codegen/internal/expression_graph.h"
 
-namespace test {
+namespace ceres {
+namespace internal {
 
-// From the NIST problem collection.
-struct Rat43CostFunctor : public ceres::CodegenCostFunction<1, 4> {
-  Rat43CostFunctor() = default;
-  Rat43CostFunctor(const double x, const double y) : x_(x), y_(y) {}
+// The control flow graph (CFG) for an ExpressionGraph. The CFG is computed on instruction level. This mean, every expression is one node in the graph.
+// https://en.wikipedia.org/wiki/Control-flow_graph
+class CFG {
+ public:
 
-  template <typename T>
-  bool operator()(const T* parameters, T* residuals) const {
-    T b1 = parameters[0];
-    T b2 = parameters[1];
-    T b3 = parameters[2];
-    T b4 = parameters[3];
-    T x = CERES_LOCAL_VARIABLE(T, x_);
-    T y = CERES_LOCAL_VARIABLE(T, y_);
-    residuals[0] = b1 * pow(T(1.0) + exp(b2 - b3 * x), T(-1.0) / b4) - y;
-    return true;
+  struct Node{
+    ExpressionId id;
+    std::vector<ExpressionId> outgoing_edges;
+    std::vector<ExpressionId> incoming_edges;
+  };
+
+  // Creates the CFG for the given graph. If 'graph' is changed, this CFG is invalid.
+  CFG (const ExpressionGraph& graph);
+
+  const Node& NodeForId(ExpressionId id) const {
+    return nodes_[id];
   }
-
-#include "tests/rat43costfunctor.h"
-
+  int Size() const { return nodes_.size(); }
  private:
-  double x_ = 0;
-  double y_ = 0;
+
+  std::vector<Node> nodes_;
 };
-}  // namespace test
-#endif  // CERES_EXAMPLES_SNAVELY_REPROJECTION_ERROR_H_
+}  // namespace internal
+}  // namespace ceres
+
+#endif  // CERES_PUBLIC_CODEGEN_INTERNAL_CODE_GENERATOR_H_
