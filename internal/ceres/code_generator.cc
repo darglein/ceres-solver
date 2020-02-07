@@ -117,8 +117,16 @@ std::string CodeGenerator::ExpressionToString(ExpressionId id) {
       // Example:    v_0      = 3.1415;
       //
       result << indentation_ << lhs << " = ";
+
+      // Putting an inf or nan double into std::stringstream will just print the
+      // strings "inf" and "nan". This is not valid C++ code so we have to check
+      // for this here.
       if (std::isinf(value)) {
-        result << "std::numeric_limits<double>::infinity()";
+        if (value > 0) {
+          result << "std::numeric_limits<double>::infinity()";
+        } else {
+          result << "-std::numeric_limits<double>::infinity()";
+        }
       } else if (std::isnan(value)) {
         result << "std::numeric_limits<double>::quiet_NaN()";
       } else {

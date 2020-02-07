@@ -67,8 +67,9 @@ TEST(CodeGenerator, COMPILE_TIME_CONSTANT) {
   T b = T(123.5);
   T c = T(1 + 1);
   T d = T(std::numeric_limits<double>::infinity());
-  T e = T(std::numeric_limits<double>::quiet_NaN());
-  T f;  // Uninitialized variables should not generate code!
+  T e = T(-std::numeric_limits<double>::infinity());
+  T f = T(std::numeric_limits<double>::quiet_NaN());
+  T g;  // Uninitialized variables should not generate code!
   auto graph = StopRecordingExpressions();
   std::vector<std::string> expected_code = {
       "{",
@@ -77,11 +78,13 @@ TEST(CodeGenerator, COMPILE_TIME_CONSTANT) {
       "  double v_2;",
       "  double v_3;",
       "  double v_4;",
+      "  double v_5;",
       "  v_0 = 0;",
       "  v_1 = 123.5;",
       "  v_2 = 2;",
       "  v_3 = std::numeric_limits<double>::infinity();",
-      "  v_4 = std::numeric_limits<double>::quiet_NaN();",
+      "  v_4 = -std::numeric_limits<double>::infinity();",
+      "  v_5 = std::numeric_limits<double>::quiet_NaN();",
       "}"};
   GenerateAndCheck(graph, expected_code);
 }
