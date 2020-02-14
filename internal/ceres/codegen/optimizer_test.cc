@@ -1,5 +1,5 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2019 Google Inc. All rights reserved.
+// Copyright 2020 Google Inc. All rights reserved.
 // http://code.google.com/p/ceres-solver/
 //
 // Redistribution and use in source and binary forms, with or without
@@ -40,34 +40,91 @@
 namespace ceres {
 namespace internal {
 
-static void GenerateAndCheck(const ExpressionGraph& graph,
+static void debugPrintGraph(const ExpressionGraph& graph) {
+  CodeGenerator::Options generator_options;
+  CodeGenerator gen(graph, generator_options);
+  auto code = gen.Generate();
+  for (int i = 0; i < code.size(); ++i) {
+    std::cout << code[i] << std::endl;
+  }
+}
+
+static void GenerateAndCheck(ExpressionGraph& graph,
                              const std::vector<std::string>& reference) {
   Optimizer::Options optimizer_options;
   Optimizer optimizer(optimizer_options);
-  auto opt = optimizer.run(graph);
-
-  CodeGenerator::Options generator_options;
-  CodeGenerator gen(opt, generator_options);
-  auto code = gen.Generate();
-  //  EXPECT_EQ(code.size(), reference.size());
-
-  for (int i = 0; i < code.size(); ++i) {
-    std::cout << code[i] << std::endl;
-    //    EXPECT_EQ(code[i], reference[i]) << "Invalid Line: " << (i + 1);
-  }
+  int iterations = optimizer.run(graph);
 }
 
 using T = ExpressionRef;
 
-// Now we add one TEST for each ExpressionType.
-TEST(CodeGenerator, COMPILE_TIME_CONSTANT) {
+TEST(Optimizer, NopCleanup) {
   StartRecordingExpressions();
-  T a = T(0);
-  T b = T(123.5);
-  MakeOutput(b, "residual[0]");
-
+  {
+    T a = T(0);
+    // The Expression default constructor creates a NOP.
+    AddExpressionToGraph(Expression());
+    AddExpressionToGraph(Expression());
+    T b = T(2);
+    AddExpressionToGraph(Expression());
+    MakeOutput(b, "residual[0]");
+    AddExpressionToGraph(Expression());
+  }
   auto graph = StopRecordingExpressions();
-  GenerateAndCheck(graph, {});
+
+  StartRecordingExpressions();
+  {
+    T a = T(0);
+    T b = T(2);
+    MakeOutput(b, "residual[0]");
+  }
+  auto reference = StopRecordingExpressions();
+
+  NopCleanup nc;
+  int result = nc(graph);
+
+  EXPECT_EQ(result, 4);
+  EXPECT_EQ(graph, reference);
 }
+
+TEST(Optimizer, NopCleanupBranches) {
+  StartRecordingExpressions();
+  {
+    T a = T(0);
+    // The Expression default constructor creates a NOP.
+    AddExpressionToGraph(Expression());
+    AddExpressionToGraph(Expression());
+    T b = T(2);
+    CERES_IF(a < b) {
+      AddExpressionToGraph(Expression());
+      T c = T(3);
+    }
+    CERES_ELSE {
+      AddExpressionToGraph(Expression());
+      MakeOutput(b, "residual[0]");
+      AddExpressionToGraph(Expression());
+    }
+    CERES_ENDIF
+    AddExpressionToGraph(Expression());
+  }
+  auto graph = StopRecordingExpressions();
+
+  StartRecordingExpressions();
+  {
+    T a = T(0);
+    T b = T(2);
+    CERES_IF(a < b) { T c = T(3); }
+    CERES_ELSE { MakeOutput(b, "residual[0]"); }
+    CERES_ENDIF
+  }
+  auto reference = StopRecordingExpressions();
+
+  NopCleanup nc;
+  int result = nc(graph);
+
+  EXPECT_EQ(result, 6);
+  EXPECT_EQ(graph, reference);
+}
+
 }  // namespace internal
 }  // namespace ceres

@@ -30,18 +30,12 @@
 
 #include "ceres/codegen/internal/optimization_pass.h"
 
-#include <cmath>
-#include <iostream>
-#include <limits>
-#include <sstream>
-
-#include "assert.h"
 #include "glog/logging.h"
 namespace ceres {
 namespace internal {
 
-double NopCleanup::operator()(ExpressionGraph& graph) {
-  double change = 0;
+int NopCleanup::operator()(ExpressionGraph& graph) const {
+  int change = 0;
 
   for (ExpressionId id = 0; id < graph.Size(); ++id) {
     Expression& expr = graph.ExpressionForId(id);
@@ -56,8 +50,8 @@ double NopCleanup::operator()(ExpressionGraph& graph) {
   return change;
 }
 
-double DeadCodeRemoval::operator()(ExpressionGraph& graph) {
-  double change = 0;
+int DeadCodeRemoval::operator()(ExpressionGraph& graph) const {
+  int change = 0;
   static_assert(std::is_signed<ExpressionId>::value,
                 "ExpressionId must be a signed integer.");
   for (ExpressionId id = graph.Size() - 1; id >= 0; --id) {
@@ -68,10 +62,11 @@ double DeadCodeRemoval::operator()(ExpressionGraph& graph) {
       change += 1.0;
     }
   }
-  return 0;
+  return change;
 }
 
-bool DeadCodeRemoval::unused(const ExpressionGraph& graph, ExpressionId id) {
+bool DeadCodeRemoval::unused(const ExpressionGraph& graph,
+                             ExpressionId id) const {
   const Expression& expr = graph.ExpressionForId(id);
   if (expr.IsControlExpression() ||
       expr.type() == ExpressionType::OUTPUT_ASSIGNMENT ||

@@ -88,7 +88,8 @@ bool ExpressionGraph::operator==(const ExpressionGraph& other) const {
 }
 
 void ExpressionGraph::Erase(ExpressionId location) {
-  CHECK(location >= 0 && location < Size()) << "Erase - location not in range.";
+  CHECK_GE(location, 0);
+  CHECK_LT(location, Size());
   // Move everything after id to the front and update references
   for (ExpressionId id = location + 1; id < Size(); ++id) {
     expressions_[id - 1] = expressions_[id];
@@ -108,8 +109,8 @@ void ExpressionGraph::Erase(ExpressionId location) {
 
 void ExpressionGraph::Insert(ExpressionId location,
                              const Expression& expression) {
-  CHECK(location >= 0 && location <= Size())
-      << "Insert - location not in range.";
+  CHECK_GE(location, 0);
+  CHECK_LE(location, Size());
   ExpressionId last_expression_id = Size() - 1;
   // Increase size by adding a dummy expression.
   expressions_.push_back(Expression());

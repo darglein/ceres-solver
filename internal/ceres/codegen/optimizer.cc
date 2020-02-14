@@ -30,32 +30,33 @@
 
 #include "ceres/codegen/internal/optimizer.h"
 
-#include <cmath>
-#include <limits>
-#include <sstream>
-
-#include "assert.h"
 #include "glog/logging.h"
 namespace ceres {
 namespace internal {
 
 Optimizer::Optimizer(const Optimizer::Options& options) : options_(options) {
-  optimizaton_passes.emplace_back(new DeadCodeRemoval());
-  optimizaton_passes.emplace_back(new NopCleanup());
+  if (options.pass_nop_cleanup) {
+    optimizaton_passes_.emplace_back(new NopCleanup());
+  }
+  if (options.pass_dead_code_removal) {
+    optimizaton_passes_.emplace_back(new DeadCodeRemoval());
+  }
 }
 
-ExpressionGraph Optimizer::run(const ExpressionGraph& graph) {
-  ExpressionGraph g = graph;
-  for (int it = 0; it < options_.max_iterations; ++it) {
-    double change = 0;
-    for (auto& pass : optimizaton_passes) {
-      change += (*pass)(g);
+int Optimizer::run(ExpressionGraph& graph) const {
+  int iteration = 0;
+  for (; iteration < options_.max_iterations; ++iteration) {
+    int change = 0;
+    for (auto& pass : optimizaton_passes_) {
+      change += (*pass)(graph);
     }
     if (change == 0) {
+      iteration++;
       break;
     }
   }
-  return g;
+
+  return iteration;
 }
 
 }  // namespace internal

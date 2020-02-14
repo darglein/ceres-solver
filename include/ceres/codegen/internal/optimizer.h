@@ -1,5 +1,5 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2019 Google Inc. All rights reserved.
+// Copyright 2020 Google Inc. All rights reserved.
 // http://code.google.com/p/ceres-solver/
 //
 // Redistribution and use in source and binary forms, with or without
@@ -32,28 +32,46 @@
 #define CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZER_H_
 
 #include <memory>
-#include <string>
 #include <vector>
 
-#include "ceres/codegen/internal/expression.h"
 #include "ceres/codegen/internal/expression_graph.h"
 #include "ceres/codegen/internal/optimization_pass.h"
 
 namespace ceres {
 namespace internal {
 
+// The Optimizer manages and applies OptimizationPasses to an ExpressionGraph.
+// This will change the ExpressionGraph, but the generated code will output the
+// same numerical values.
+//
+// The Optimizer operates in the following way (pseudo code):
+//
+//   while (true) {
+//      graph.hasChanged = false;
+//      for each pass in OptimizationPasses
+//         pass.applyTo(graph)
+//      if(!graph.hasChanged)
+//         break;
+//   }
+//
 class Optimizer {
  public:
   struct Options {
     int max_iterations = 100;
+
+    bool pass_nop_cleanup = true;
+    bool pass_dead_code_removal = true;
   };
 
   Optimizer(const Options& options);
-  ExpressionGraph run(const ExpressionGraph& graph);
+
+  // Run the optimizer on the given graph.
+  // Return: The number of required iterations.
+  int run(ExpressionGraph& graph) const;
 
  private:
   const Options options_;
-  std::vector<std::unique_ptr<OptimizationPass>> optimizaton_passes;
+  std::vector<std::unique_ptr<OptimizationPass>> optimizaton_passes_;
 };
 
 }  // namespace internal

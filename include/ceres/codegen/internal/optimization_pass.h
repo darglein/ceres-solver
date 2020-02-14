@@ -28,11 +28,8 @@
 //
 // Author: darius.rueckert@fau.de (Darius Rueckert)
 //
-#ifndef CERES_PUBLIC_CODEGEN_OPTIMIZATION_PASS_H_
-#define CERES_PUBLIC_CODEGEN_OPTIMIZATION_PASS_H_
-
-#include <string>
-#include <vector>
+#ifndef CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZATION_PASS_H_
+#define CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZATION_PASS_H_
 
 #include "ceres/codegen/internal/expression.h"
 #include "ceres/codegen/internal/expression_graph.h"
@@ -44,10 +41,9 @@ namespace internal {
 class OptimizationPass {
  public:
   // Applies the optimization to the given graph (in-place). The returned value
-  // is the cost change C(old) - C(new) achieved during the optimization. A cost
-  // change of 0 means, that nothing was done at all. The optimizer usually
+  // is the number of changes applied to the input graph. The optimizer usually
   // iterates until all optimization passes return 0.
-  virtual double operator()(ExpressionGraph& graph) = 0;
+  virtual int operator()(ExpressionGraph& graph) const = 0;
 };
 
 // [OptimizationPass] NOP Cleanup
@@ -60,6 +56,7 @@ class OptimizationPass {
 //   expressions. Therefore, other optimization passes replace expression with
 //   NOP instead of removing them. This optimization pass removes all NOPs back
 //   to front.
+//   The returned value is equal to the number of removed NOPs.
 //
 // Example:
 //   v_0 = 1;
@@ -72,13 +69,13 @@ class OptimizationPass {
 //   v_2 = v_0 + v_1;
 class NopCleanup : public OptimizationPass {
  public:
-  virtual double operator()(ExpressionGraph& graph) override;
+  virtual int operator()(ExpressionGraph& graph) const override;
 };
 
 // [OptimizationPass] Dead Code Removal
 //
 // Short Description:
-//   Removes unused expressions and branches by replacing them with NOPs.
+//   Removes unused expression by replacing them with NOPs.
 //
 // Description:
 //  This module removes unused expressions back to front in a single pass.
@@ -88,9 +85,7 @@ class NopCleanup : public OptimizationPass {
 //  An expression is unused, if
 //    - the left hand side variable is not referenced by later expressions
 //    - and type!=OUTPUT_ASSIGNMENT
-//  Unused branches are removed in a two-way procedure. First, empty else
-//  blocks are removed. Second, if-blocks which are empty and
-//  don't have an else-block removed.
+//  The returned value is equal to the number of removed expressions.
 //
 //
 // Example:
@@ -109,13 +104,13 @@ class NopCleanup : public OptimizationPass {
 //   residuals[0] = v_3;
 class DeadCodeRemoval : public OptimizationPass {
  public:
-  virtual double operator()(ExpressionGraph& graph) override;
+  virtual int operator()(ExpressionGraph& graph) const override;
 
  private:
-  bool unused(const ExpressionGraph& graph, ExpressionId id);
+  bool unused(const ExpressionGraph& graph, ExpressionId id) const;
 };
 
 }  // namespace internal
 }  // namespace ceres
 
-#endif  // CERES_PUBLIC_CODEGEN_INTERNAL_CODE_GENERATOR_H_
+#endif  // CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZATION_PASS_H_
