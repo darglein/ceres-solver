@@ -1,5 +1,5 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2019 Google Inc. All rights reserved.
+// Copyright 2020 Google Inc. All rights reserved.
 // http://code.google.com/p/ceres-solver/
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,37 +27,25 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 // Author: darius.rueckert@fau.de (Darius Rueckert)
+//
+#ifndef CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZATION_PASS_SUMMARY_H_
+#define CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZATION_PASS_SUMMARY_H_
 
-#include "ceres/codegen/internal/optimizer.h"
+#include <string>
 
-#include "glog/logging.h"
 namespace ceres {
 namespace internal {
 
-Optimizer::Optimizer(const Optimizer::Options& options) : options_(options) {
-  if (options.pass_nop_cleanup) {
-    optimizaton_passes_.emplace_back(new NopCleanup());
-  }
-  if (options.pass_dead_code_removal) {
-    optimizaton_passes_.emplace_back(new DeadCodeRemoval());
-  }
-}
-
-int Optimizer::run(ExpressionGraph& graph) const {
-  int iteration = 0;
-  for (; iteration < options_.max_iterations; ++iteration) {
-    int change = 0;
-    for (auto& pass : optimizaton_passes_) {
-      change += (*pass)(graph);
-    }
-    if (change == 0) {
-      iteration++;
-      break;
-    }
-  }
-
-  return iteration;
-}
+struct OptimizationPassSummary {
+  bool expression_graph_changed = false;
+  std::string optimization_pass_name;
+  int num_expressions_replaced_by_nop = 0;
+  int num_expressions_removed = 0;
+  int num_expressions_inserted = 0;
+  int num_expressions_modified = 0;
+};
 
 }  // namespace internal
 }  // namespace ceres
+
+#endif  // CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZATION_PASS_SUMMARY_H_

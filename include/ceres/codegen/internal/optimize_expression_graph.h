@@ -28,25 +28,36 @@
 //
 // Author: darius.rueckert@fau.de (Darius Rueckert)
 //
-#ifndef CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZER_H_
-#define CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZER_H_
+#ifndef CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZE_EXPRESSION_GRAPH_H_
+#define CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZE_EXPRESSION_GRAPH_H_
 
 #include <memory>
 #include <vector>
 
 #include "ceres/codegen/internal/expression_graph.h"
-#include "ceres/codegen/internal/optimization_pass.h"
+#include "ceres/codegen/internal/optimization_pass_summary.h"
 
 namespace ceres {
 namespace internal {
 
-// The Optimizer manages and applies OptimizationPasses to an ExpressionGraph.
-// This will change the ExpressionGraph, but the generated code will output the
-// same numerical values.
+struct OptimizeExpressionGraphOptions {
+  int max_num_iterations = 100;
+  bool eliminate_nops = true;
+};
+
+struct OptimizeExpressionGraphSummary {
+  int num_iterations;
+  std::vector<OptimizationPassSummary> summaries;
+};
+
+// Optimize the given ExpressionGraph in-place according to the defined
+// OptimizeExpressionGraphOptions. This will change the ExpressionGraph, but the
+// generated code will output the same numerical values.
 //
-// The Optimizer operates in the following way (pseudo code):
+// The Optimization iteratively applies all OptimizationPasses until the graph
+// does not change anymore or max_num_iterations is reached. Pseudo Code:
 //
-//   while (true) {
+//   for(int it = 0; it < max_num_iterations; ++it) {
 //      graph.hasChanged = false;
 //      for each pass in OptimizationPasses
 //         pass.applyTo(graph)
@@ -54,27 +65,10 @@ namespace internal {
 //         break;
 //   }
 //
-class Optimizer {
- public:
-  struct Options {
-    int max_iterations = 100;
-
-    bool pass_nop_cleanup = true;
-    bool pass_dead_code_removal = true;
-  };
-
-  Optimizer(const Options& options);
-
-  // Run the optimizer on the given graph.
-  // Return: The number of required iterations.
-  int run(ExpressionGraph& graph) const;
-
- private:
-  const Options options_;
-  std::vector<std::unique_ptr<OptimizationPass>> optimizaton_passes_;
-};
+OptimizeExpressionGraphSummary OptimizeExpressionGraph(
+    const OptimizeExpressionGraphOptions& options, ExpressionGraph* graph);
 
 }  // namespace internal
 }  // namespace ceres
 
-#endif  // CERES_PUBLIC_CODEGEN_INTERNAL_CODE_GENERATOR_H_
+#endif  // CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZE_EXPRESSION_GRAPH_H_

@@ -30,7 +30,7 @@
 //
 #define CERES_CODEGEN
 
-#include "ceres/codegen/internal/optimizer.h"
+#include "ceres/codegen/internal/eliminate_nops.h"
 
 #include "ceres/codegen/internal/code_generator.h"
 #include "ceres/codegen/internal/expression_graph.h"
@@ -40,25 +40,9 @@
 namespace ceres {
 namespace internal {
 
-static void debugPrintGraph(const ExpressionGraph& graph) {
-  CodeGenerator::Options generator_options;
-  CodeGenerator gen(graph, generator_options);
-  auto code = gen.Generate();
-  for (int i = 0; i < code.size(); ++i) {
-    std::cout << code[i] << std::endl;
-  }
-}
-
-static void GenerateAndCheck(ExpressionGraph& graph,
-                             const std::vector<std::string>& reference) {
-  Optimizer::Options optimizer_options;
-  Optimizer optimizer(optimizer_options);
-  int iterations = optimizer.run(graph);
-}
-
 using T = ExpressionRef;
 
-TEST(Optimizer, NopCleanup) {
+TEST(EliminateNops, SimpleLinear) {
   StartRecordingExpressions();
   {
     T a = T(0);
@@ -80,14 +64,12 @@ TEST(Optimizer, NopCleanup) {
   }
   auto reference = StopRecordingExpressions();
 
-  NopCleanup nc;
-  int result = nc(graph);
-
-  EXPECT_EQ(result, 4);
+  auto summary = EliminateNops(&graph);
+  EXPECT_TRUE(summary.expression_graph_changed);
   EXPECT_EQ(graph, reference);
 }
 
-TEST(Optimizer, NopCleanupBranches) {
+TEST(EliminateNops, Branches) {
   StartRecordingExpressions();
   {
     T a = T(0);
@@ -119,10 +101,8 @@ TEST(Optimizer, NopCleanupBranches) {
   }
   auto reference = StopRecordingExpressions();
 
-  NopCleanup nc;
-  int result = nc(graph);
-
-  EXPECT_EQ(result, 6);
+  auto summary = EliminateNops(&graph);
+  EXPECT_TRUE(summary.expression_graph_changed);
   EXPECT_EQ(graph, reference);
 }
 

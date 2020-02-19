@@ -28,23 +28,14 @@
 //
 // Author: darius.rueckert@fau.de (Darius Rueckert)
 //
-#ifndef CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZATION_PASS_H_
-#define CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZATION_PASS_H_
+#ifndef CERES_PUBLIC_CODEGEN_INTERNAL_ELIMINATE_NOPS_H_
+#define CERES_PUBLIC_CODEGEN_INTERNAL_ELIMINATE_NOPS_H_
 
-#include "ceres/codegen/internal/expression.h"
 #include "ceres/codegen/internal/expression_graph.h"
+#include "ceres/codegen/internal/optimization_pass_summary.h"
 
 namespace ceres {
 namespace internal {
-
-// Interface class for optimization passes.
-class OptimizationPass {
- public:
-  // Applies the optimization to the given graph (in-place). The returned value
-  // is the number of changes applied to the input graph. The optimizer usually
-  // iterates until all optimization passes return 0.
-  virtual int operator()(ExpressionGraph& graph) const = 0;
-};
 
 // [OptimizationPass] NOP Cleanup
 //
@@ -67,50 +58,10 @@ class OptimizationPass {
 //   v_0 = 1;
 //   v_1 = 2;
 //   v_2 = v_0 + v_1;
-class NopCleanup : public OptimizationPass {
- public:
-  virtual int operator()(ExpressionGraph& graph) const override;
-};
 
-// [OptimizationPass] Dead Code Removal
-//
-// Short Description:
-//   Removes unused expression by replacing them with NOPs.
-//
-// Description:
-//  This module removes unused expressions back to front in a single pass.
-//    for e in (graph.end...graph.begin)
-//       if unused(e)
-//          e = NOP
-//  An expression is unused, if
-//    - the left hand side variable is not referenced by later expressions
-//    - and type!=OUTPUT_ASSIGNMENT
-//  The returned value is equal to the number of removed expressions.
-//
-//
-// Example:
-//   v_0 = 1;
-//   v_1 = 3
-//   v_2 = 3
-//   v_3 = v_0 + v_1;
-//   v_4 = v_1 + v_2
-//   residuals[0] = v_3;
-// Transforms to:
-//   v_0 = 1;
-//   v_1 = 3
-//   // NOP
-//   v_3 = v_0 + v_1;
-//   // NOP
-//   residuals[0] = v_3;
-class DeadCodeRemoval : public OptimizationPass {
- public:
-  virtual int operator()(ExpressionGraph& graph) const override;
-
- private:
-  bool unused(const ExpressionGraph& graph, ExpressionId id) const;
-};
+OptimizationPassSummary EliminateNops(ExpressionGraph* graph);
 
 }  // namespace internal
 }  // namespace ceres
 
-#endif  // CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZATION_PASS_H_
+#endif  // CERES_PUBLIC_CODEGEN_INTERNAL_ELIMINATE_NOPS_H_

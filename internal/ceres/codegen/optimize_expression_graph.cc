@@ -28,60 +28,32 @@
 //
 // Author: darius.rueckert@fau.de (Darius Rueckert)
 
-#include "ceres/codegen/internal/optimization_pass.h"
+#include "ceres/codegen/internal/optimize_expression_graph.h"
 
+#include "ceres/codegen/internal/eliminate_nops.h"
 #include "glog/logging.h"
 namespace ceres {
 namespace internal {
 
-int NopCleanup::operator()(ExpressionGraph& graph) const {
-  int change = 0;
+OptimizeExpressionGraphSummary OptimizeExpressionGraph(
+    const OptimizeExpressionGraphOptions& options, ExpressionGraph* graph) {
+  OptimizeExpressionGraphSummary summary;
+  summary.num_iterations = 0;
+  while (summary.num_iterations < options.max_num_iterations) {
+    summary.num_iterations++;
+    bool changed = false;
 
-  for (ExpressionId id = 0; id < graph.Size(); ++id) {
-    Expression& expr = graph.ExpressionForId(id);
+    if (options.eliminate_nops) {
+      auto pass_summary = EliminateNops(graph);
+      changed |= pass_summary.expression_graph_changed;
+      summary.summaries.push_back(pass_summary);
+    }
 
-    if (expr.type() == ExpressionType::NOP) {
-      graph.Erase(id);
-      id--;
-      change++;
+    if (!changed) {
+      break;
     }
   }
-
-  return change;
-}
-
-int DeadCodeRemoval::operator()(ExpressionGraph& graph) const {
-  int change = 0;
-  static_assert(std::is_signed<ExpressionId>::value,
-                "ExpressionId must be a signed integer.");
-  for (ExpressionId id = graph.Size() - 1; id >= 0; --id) {
-    Expression& expr = graph.ExpressionForId(id);
-
-    if (unused(graph, id)) {
-      expr.MakeNop();
-      change += 1.0;
-    }
-  }
-  return change;
-}
-
-bool DeadCodeRemoval::unused(const ExpressionGraph& graph,
-                             ExpressionId id) const {
-  const Expression& expr = graph.ExpressionForId(id);
-  if (expr.IsControlExpression() ||
-      expr.type() == ExpressionType::OUTPUT_ASSIGNMENT ||
-      expr.type() == ExpressionType::COMMENT) {
-    return false;
-  }
-
-  for (ExpressionId i = id + 1; i < graph.Size(); ++i) {
-    auto& other = graph.ExpressionForId(i);
-    if (other.DirectlyDependsOn(expr.lhs_id()) ||
-        other.lhs_id() == expr.lhs_id()) {
-      return false;
-    }
-  }
-  return true;
+  return summary;
 }
 
 }  // namespace internal
