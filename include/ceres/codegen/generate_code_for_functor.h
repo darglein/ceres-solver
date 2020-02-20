@@ -34,6 +34,7 @@
 #include "ceres/codegen/internal/code_generator.h"
 #include "ceres/codegen/internal/expression_graph.h"
 #include "ceres/codegen/internal/expression_ref.h"
+#include "ceres/codegen/internal/optimize_expression_graph.h"
 #include "ceres/internal/autodiff.h"
 #include "ceres/jet.h"
 
@@ -151,6 +152,12 @@ std::vector<std::string> GenerateCodeForFunctor(
 
   // TODO(darius): Once the optimizer is in place, call it from
   // here to optimize the code before generating.
+  internal::OptimizeExpressionGraphOptions optimization_options;
+  auto summary_residual =
+      internal::OptimizeExpressionGraph(optimization_options, &residual_graph);
+  auto summary_jacobian = internal::OptimizeExpressionGraph(
+      optimization_options, &residual_and_jacobian_graph);
+  std::cout << summary_jacobian << std::endl;
 
   // We have the optimized code of the cost functor stored in the
   // ExpressionGraphs. Now we generate C++ code for it and place it line-by-line

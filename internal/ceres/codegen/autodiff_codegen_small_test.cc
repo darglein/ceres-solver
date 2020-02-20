@@ -1,5 +1,5 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2020 Google Inc. All rights reserved.
+// Copyright 2019 Google Inc. All rights reserved.
 // http://code.google.com/p/ceres-solver/
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,52 +28,39 @@
 //
 // Author: darius.rueckert@fau.de (Darius Rueckert)
 //
-#ifndef CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZE_EXPRESSION_GRAPH_H_
-#define CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZE_EXPRESSION_GRAPH_H_
-
-#include <memory>
-#include <vector>
-
-#include "ceres/codegen/internal/expression_graph.h"
-#include "ceres/codegen/internal/optimization_pass_summary.h"
+// This file tests the Expression class. For each member function one test is
+// included here.
+//
+#include "autodiff_codegen_test2.h"
+#include "ceres/autodiff_cost_function.h"
+#include "ceres/codegen/internal/expression.h"
+#include "ceres/internal/autodiff.h"
+#include "common.h"
+#include "compare_cost_functions.h"
+#include "gtest/gtest.h"
 
 namespace ceres {
 namespace internal {
 
-struct OptimizeExpressionGraphOptions {
-  int max_num_iterations = 100;
-  bool eliminate_nops = true;
-};
+template <typename FunctorType, int kNumResiduals, int... Ns>
+void test_functor() {
+  FunctorType cost_function_generated;
+  CostFunctionToFunctor<FunctorType> cost_functor;
+  auto* cost_function_ad =
+      new ceres::AutoDiffCostFunction<CostFunctionToFunctor<FunctorType>,
+                                      kNumResiduals,
+                                      Ns...>(&cost_functor);
 
-struct OptimizeExpressionGraphSummary {
-  int num_iterations;
-  std::vector<OptimizationPassSummary> summaries;
-};
+  // Run N times with random values in the range [-1,1]
+  for (int i = 0; i < 1; ++i) {
+    ceres::internal::compare_cost_functions<kNumResiduals, Ns...>(
+        &cost_function_generated, cost_function_ad, true);
+  }
+}
 
-std::ostream& operator<<(std::ostream& strm,
-                         const OptimizeExpressionGraphSummary& summary);
-std::ostream& operator<<(std::ostream& strm,
-                         const OptimizationPassSummary& summary);
-
-// Optimize the given ExpressionGraph in-place according to the defined
-// OptimizeExpressionGraphOptions. This will change the ExpressionGraph, but the
-// generated code will output the same numerical values.
-//
-// The Optimization iteratively applies all OptimizationPasses until the graph
-// does not change anymore or max_num_iterations is reached. Pseudo Code:
-//
-//   for(int it = 0; it < max_num_iterations; ++it) {
-//      graph.hasChanged = false;
-//      for each pass in OptimizationPasses
-//         pass.applyTo(graph)
-//      if(!graph.hasChanged)
-//         break;
-//   }
-//
-OptimizeExpressionGraphSummary OptimizeExpressionGraph(
-    const OptimizeExpressionGraphOptions& options, ExpressionGraph* graph);
+TEST(AutodiffCodeGen, InputOutputAssignment) {
+  test_functor<test::Test, 1, 1>();
+}
 
 }  // namespace internal
 }  // namespace ceres
-
-#endif  // CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZE_EXPRESSION_GRAPH_H_

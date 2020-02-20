@@ -28,52 +28,44 @@
 //
 // Author: darius.rueckert@fau.de (Darius Rueckert)
 //
-#ifndef CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZE_EXPRESSION_GRAPH_H_
-#define CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZE_EXPRESSION_GRAPH_H_
+#ifndef CERES_PUBLIC_CODEGEN_EXPRESSION_DEPENDENCIES_H_
+#define CERES_PUBLIC_CODEGEN_EXPRESSION_DEPENDENCIES_H_
 
-#include <memory>
 #include <vector>
 
+#include "ceres/codegen/internal/expression.h"
 #include "ceres/codegen/internal/expression_graph.h"
-#include "ceres/codegen/internal/optimization_pass_summary.h"
 
 namespace ceres {
 namespace internal {
 
-struct OptimizeExpressionGraphOptions {
-  int max_num_iterations = 100;
-  bool eliminate_nops = true;
+
+class ExpressionDependencies {
+ public:
+
+  struct Data{
+
+    // All other expressions that write to the left hand side of this expression.
+    std::vector<ExpressionId> written_to;
+
+    // All other expressions that use the left hand side of this expression as an argument.
+    std::vector<ExpressionId> used_by;
+
+    // An expression is in SSA form if the left hand side is written to exactly once.
+    bool IsSSA()const { return written_to.size() == 1;}
+
+    bool Unused()const { return used_by.empty();}
+  };
+  ExpressionDependencies(const ExpressionGraph& graph);
+
+  const Data& DataForExpressionId(ExpressionId id) {
+    return data_[id];
+  }
+ private:
+  std::vector<Data> data_;
+
 };
-
-struct OptimizeExpressionGraphSummary {
-  int num_iterations;
-  std::vector<OptimizationPassSummary> summaries;
-};
-
-std::ostream& operator<<(std::ostream& strm,
-                         const OptimizeExpressionGraphSummary& summary);
-std::ostream& operator<<(std::ostream& strm,
-                         const OptimizationPassSummary& summary);
-
-// Optimize the given ExpressionGraph in-place according to the defined
-// OptimizeExpressionGraphOptions. This will change the ExpressionGraph, but the
-// generated code will output the same numerical values.
-//
-// The Optimization iteratively applies all OptimizationPasses until the graph
-// does not change anymore or max_num_iterations is reached. Pseudo Code:
-//
-//   for(int it = 0; it < max_num_iterations; ++it) {
-//      graph.hasChanged = false;
-//      for each pass in OptimizationPasses
-//         pass.applyTo(graph)
-//      if(!graph.hasChanged)
-//         break;
-//   }
-//
-OptimizeExpressionGraphSummary OptimizeExpressionGraph(
-    const OptimizeExpressionGraphOptions& options, ExpressionGraph* graph);
-
 }  // namespace internal
 }  // namespace ceres
 
-#endif  // CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZE_EXPRESSION_GRAPH_H_
+#endif  // CERES_PUBLIC_CODEGEN_EXPRESSION_DEPENDENCIES_H_

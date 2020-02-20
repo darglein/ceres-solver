@@ -56,6 +56,7 @@ if (BUILD_TESTING AND GFLAGS)
     ceres_test(code_generator)
     ceres_test(cfg)
     ceres_test(eliminate_nops)
+    ceres_test(to_partial_ssa)
     set(CMAKE_CXX_FLAGS ${CXX_FLAGS_OLD})
   endif()
 
@@ -86,6 +87,11 @@ if (BUILD_TESTING AND GFLAGS)
     InputOutputAssignment CompileTimeConstants Assignments BinaryArithmetic
     UnaryArithmetic BinaryComparison LogicalOperators ScalarFunctions
     LogicalFunctions Branches
+    )
+
+  generate_test_functor(Test autodiff_codegen_test2.h)
+  ceres_test(autodiff_codegen_small
+    Test
     )
 
   generate_test_functor(Projective gen_autodiff_test_functors.h)

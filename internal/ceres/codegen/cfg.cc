@@ -113,6 +113,11 @@ CFG::CFG(const ExpressionGraph& graph)
     }
   }
 
+  for (auto& block : blocks_) {
+    std::sort(block.outgoing_edges.begin(), block.outgoing_edges.end());
+    std::sort(block.incoming_edges.begin(), block.incoming_edges.end());
+  }
+
   //  ===== Build dominator tree ====
 
   auto intersect = [this](BlockId b1, BlockId b2) {
@@ -189,6 +194,32 @@ CFG::CFG(const ExpressionGraph& graph)
 
   for (auto d : doms_) {
     //    std::cout << "dom " << d << std::endl;
+  }
+}
+
+bool CFG::DominateExpression(ExpressionId a, ExpressionId b) {
+  auto block_a = BlockIdForExpressionId(a);
+  auto block_b = BlockIdForExpressionId(b);
+
+  if (block_a == block_b) {
+    return a <= b;
+  }
+
+  return DominateBlock(block_a, block_b);
+}
+
+bool CFG::DominateBlock(BlockId a, BlockId b) {
+  // go upwards from b until we find either a or the start.
+  while (true) {
+    if (a == b) {
+      return true;
+    }
+
+    if (b == kStartNode) {
+      return false;
+    }
+
+    b = doms_[b];
   }
 }
 

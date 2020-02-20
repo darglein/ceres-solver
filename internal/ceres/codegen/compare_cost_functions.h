@@ -92,11 +92,17 @@ void compare_cost_functions(CostFunction* f1,
   f1->Evaluate(params.data(), residuals_0.data(), jacobians_0.data());
   f2->Evaluate(params.data(), residuals_1.data(), jacobians_1.data());
 
+  //  std::cout << kNumResiduals << std::endl;
   for (int i = 0; i < kNumResiduals; ++i) {
     double_compare(residuals_0[i], residuals_1[i]);
+    //    std::cout << i << ": " << residuals_0[i] << " " << residuals_1[i]
+    //              << std::endl;
   }
+  //  std::cout << kNumResiduals * Params::kNumParameters << std::endl;
   for (int i = 0; i < kNumResiduals * Params::kNumParameters; ++i) {
     double_compare(jacobians_array_0[i], jacobians_array_1[i]);
+    //    std::cout << i << ": " << jacobians_array_0[i] << " "
+    //              << jacobians_array_1[i] << std::endl;
   }
 }
 

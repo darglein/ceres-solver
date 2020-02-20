@@ -47,6 +47,7 @@ namespace internal {
 
 using BlockId = int;
 static constexpr BlockId kEndNode = -1;
+static constexpr BlockId kStartNode = -1;
 
 class CFG {
  public:
@@ -66,6 +67,13 @@ class CFG {
   CFG(const ExpressionGraph& graph);
 
   BlockId Idom(BlockId id) const { return doms_[id]; }
+
+  // Returns true if a dominates b.
+  // a is always executed before b.
+  bool DominateExpression(ExpressionId a, ExpressionId b);
+
+  bool DominateBlock(BlockId a, BlockId b);
+
   const BasicBlock& NodeForId(BlockId id) const { return blocks_[id]; }
   int Size() const { return blocks_.size(); }
   BlockId BlockIdForExpressionId(ExpressionId id) {

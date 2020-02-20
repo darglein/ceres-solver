@@ -1,5 +1,5 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2020 Google Inc. All rights reserved.
+// Copyright 2019 Google Inc. All rights reserved.
 // http://code.google.com/p/ceres-solver/
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,52 +28,27 @@
 //
 // Author: darius.rueckert@fau.de (Darius Rueckert)
 //
-#ifndef CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZE_EXPRESSION_GRAPH_H_
-#define CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZE_EXPRESSION_GRAPH_H_
+#include "ceres/codegen/internal/expression_dependencies.h"
 
-#include <memory>
-#include <vector>
-
-#include "ceres/codegen/internal/expression_graph.h"
-#include "ceres/codegen/internal/optimization_pass_summary.h"
-
+#include "glog/logging.h"
 namespace ceres {
 namespace internal {
 
-struct OptimizeExpressionGraphOptions {
-  int max_num_iterations = 100;
-  bool eliminate_nops = true;
-};
+ExpressionDependencies::ExpressionDependencies(const ExpressionGraph& graph)
+    : data_(graph.Size()) {
+  for (ExpressionId id = 0; id < graph.Size(); ++id) {
+    auto& expr = graph.ExpressionForId(id);
+    auto& data = data_[id];
 
-struct OptimizeExpressionGraphSummary {
-  int num_iterations;
-  std::vector<OptimizationPassSummary> summaries;
-};
+    if (expr.HasValidLhs()) {
+      data_[expr.lhs_id()].written_to.push_back(id);
+    }
 
-std::ostream& operator<<(std::ostream& strm,
-                         const OptimizeExpressionGraphSummary& summary);
-std::ostream& operator<<(std::ostream& strm,
-                         const OptimizationPassSummary& summary);
-
-// Optimize the given ExpressionGraph in-place according to the defined
-// OptimizeExpressionGraphOptions. This will change the ExpressionGraph, but the
-// generated code will output the same numerical values.
-//
-// The Optimization iteratively applies all OptimizationPasses until the graph
-// does not change anymore or max_num_iterations is reached. Pseudo Code:
-//
-//   for(int it = 0; it < max_num_iterations; ++it) {
-//      graph.hasChanged = false;
-//      for each pass in OptimizationPasses
-//         pass.applyTo(graph)
-//      if(!graph.hasChanged)
-//         break;
-//   }
-//
-OptimizeExpressionGraphSummary OptimizeExpressionGraph(
-    const OptimizeExpressionGraphOptions& options, ExpressionGraph* graph);
+    for (auto arg : expr.arguments()) {
+      data_[arg].used_by.push_back(id);
+    }
+  }
+}
 
 }  // namespace internal
 }  // namespace ceres
-
-#endif  // CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZE_EXPRESSION_GRAPH_H_

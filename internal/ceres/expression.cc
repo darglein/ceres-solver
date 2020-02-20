@@ -29,7 +29,9 @@
 // Author: darius.rueckert@fau.de (Darius Rueckert)
 
 #include "ceres/codegen/internal/expression.h"
+
 #include <algorithm>
+
 #include "glog/logging.h"
 
 namespace ceres {
@@ -219,6 +221,17 @@ bool Expression::IsSemanticallyEquivalentTo(const Expression& other) const {
   return type() == other.type() && name() == other.name() &&
          value() == other.value() &&
          arguments().size() == other.arguments().size();
+}
+
+void Expression::UpdateId(ExpressionId source, ExpressionId target) {
+  if (lhs_id_ == source) {
+    lhs_id_ = target;
+  }
+  for (auto& p : arguments_) {
+    if (p == source) {
+      p = target;
+    }
+  }
 }
 
 }  // namespace internal

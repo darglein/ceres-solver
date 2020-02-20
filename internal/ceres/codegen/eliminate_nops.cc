@@ -37,6 +37,7 @@ namespace internal {
 
 OptimizationPassSummary EliminateNops(ExpressionGraph* graph) {
   OptimizationPassSummary summary;
+  summary.optimization_pass_name = "EliminateNops";
 
   for (ExpressionId id = 0; id < graph->Size(); ++id) {
     Expression& expr = graph->ExpressionForId(id);
@@ -44,10 +45,10 @@ OptimizationPassSummary EliminateNops(ExpressionGraph* graph) {
     if (expr.type() == ExpressionType::NOP) {
       graph->Erase(id);
       id--;
-      summary.expression_graph_changed = true;
       summary.num_expressions_removed++;
     }
   }
+  summary.expression_graph_changed = summary.num_expressions_removed > 0;
   return summary;
 }
 

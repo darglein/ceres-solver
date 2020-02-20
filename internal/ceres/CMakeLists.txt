@@ -157,6 +157,7 @@ if(CODE_GENERATION)
       codegen/cfg.cc
       codegen/optimize_expression_graph.cc
       codegen/eliminate_nops.cc
+      codegen/expression_dependencies.cc
   )
   list(APPEND CERES_INTERNAL_SRC ${CERES_CODEGEN_SRC})
 endif(CODE_GENERATION)

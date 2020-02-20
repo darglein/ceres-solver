@@ -366,6 +366,8 @@ class Expression {
   void set_lhs_id(ExpressionId new_lhs_id) { lhs_id_ = new_lhs_id; }
   std::vector<ExpressionId>* mutable_arguments() { return &arguments_; }
 
+  void UpdateId(ExpressionId source, ExpressionId target);
+
  private:
   ExpressionType type_ = ExpressionType::NOP;
   ExpressionReturnType return_type_ = ExpressionReturnType::VOID;

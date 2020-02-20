@@ -28,52 +28,28 @@
 //
 // Author: darius.rueckert@fau.de (Darius Rueckert)
 //
-#ifndef CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZE_EXPRESSION_GRAPH_H_
-#define CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZE_EXPRESSION_GRAPH_H_
+// This file includes unit test functors for every supported expression type.
+// This is similar to expression_ref_test and codegeneration_test, but for the
+// complete pipeline including automatic differentation. For each of the structs
+// below, the Evaluate function is generated using GenerateCodeForFunctor. After
+// that this function is executed with random parameters. The result of the
+// residuals and jacobians is then compared to AutoDiff (without code
+// generation). Of course, the correctness of this module depends on the
+// correctness of autodiff.
+//
+#include <cmath>
+#include <limits>
 
-#include <memory>
-#include <vector>
+#include "ceres/codegen/codegen_cost_function.h"
+namespace test {
 
-#include "ceres/codegen/internal/expression_graph.h"
-#include "ceres/codegen/internal/optimization_pass_summary.h"
-
-namespace ceres {
-namespace internal {
-
-struct OptimizeExpressionGraphOptions {
-  int max_num_iterations = 100;
-  bool eliminate_nops = true;
+struct Test : public ceres::CodegenCostFunction<1,1> {
+  template <typename T>
+  bool operator()(const T* x, T* y) const {
+    y[0] = pow(x[0],x[0]);
+    return true;
+  }
+#include "tests/test.h"
 };
 
-struct OptimizeExpressionGraphSummary {
-  int num_iterations;
-  std::vector<OptimizationPassSummary> summaries;
-};
-
-std::ostream& operator<<(std::ostream& strm,
-                         const OptimizeExpressionGraphSummary& summary);
-std::ostream& operator<<(std::ostream& strm,
-                         const OptimizationPassSummary& summary);
-
-// Optimize the given ExpressionGraph in-place according to the defined
-// OptimizeExpressionGraphOptions. This will change the ExpressionGraph, but the
-// generated code will output the same numerical values.
-//
-// The Optimization iteratively applies all OptimizationPasses until the graph
-// does not change anymore or max_num_iterations is reached. Pseudo Code:
-//
-//   for(int it = 0; it < max_num_iterations; ++it) {
-//      graph.hasChanged = false;
-//      for each pass in OptimizationPasses
-//         pass.applyTo(graph)
-//      if(!graph.hasChanged)
-//         break;
-//   }
-//
-OptimizeExpressionGraphSummary OptimizeExpressionGraph(
-    const OptimizeExpressionGraphOptions& options, ExpressionGraph* graph);
-
-}  // namespace internal
-}  // namespace ceres
-
-#endif  // CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZE_EXPRESSION_GRAPH_H_
+}  // namespace test
