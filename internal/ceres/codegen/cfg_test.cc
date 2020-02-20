@@ -39,7 +39,11 @@
 namespace ceres {
 namespace internal {
 
-static void checkCFG(const CFG& cfg, const std::vector<CFG::Node>& nodes) {
+using T = ExpressionRef;
+
+static void checkCFG(const CFG& cfg,
+                     const std::vector<CFG::BasicBlock>& nodes) {
+  //  cfg.Print();
   EXPECT_EQ(cfg.Size(), nodes.size());
 
   if (cfg.Size() != nodes.size()) return;
@@ -48,8 +52,17 @@ static void checkCFG(const CFG& cfg, const std::vector<CFG::Node>& nodes) {
     auto& node1 = cfg.NodeForId(i);
     auto& node2 = nodes[i];
     EXPECT_EQ(node1.id, node2.id);
+    EXPECT_EQ(node1.start, node2.start);
+    EXPECT_EQ(node1.end, node2.end);
     EXPECT_EQ(node1.outgoing_edges, node2.outgoing_edges);
-    EXPECT_EQ(node1.incoming_edges, node2.incoming_edges);
+  }
+}
+
+static void checkDom(const CFG& cfg, const std::vector<BlockId>& doms) {
+  EXPECT_EQ(cfg.Size(), doms.size());
+  if (cfg.Size() != doms.size()) return;
+  for (BlockId i = 0; i < cfg.Size(); ++i) {
+    EXPECT_EQ(cfg.Idom(i), doms[i]);
   }
 }
 
@@ -60,81 +73,255 @@ TEST(CFG, Size) {
   EXPECT_EQ(CFG(graph).Size(), 1);
   graph.InsertBack(Expression::CreateCompileTimeConstant(42));
   graph.InsertBack(Expression::CreateCompileTimeConstant(42));
-  EXPECT_EQ(CFG(graph).Size(), 3);
+  EXPECT_EQ(CFG(graph).Size(), 1);
 }
 
-TEST(CFG, Linear) {
-  // A linear graph of the following structure
-  // 0 -> 1 -> 2 -> 3 -> end
+TEST(CFG, Blocks) {
   ExpressionGraph graph;
   graph.InsertBack(Expression::CreateCompileTimeConstant(42));
   graph.InsertBack(Expression::CreateCompileTimeConstant(42));
   graph.InsertBack(Expression::CreateCompileTimeConstant(42));
   graph.InsertBack(Expression::CreateCompileTimeConstant(42));
-  std::vector<CFG::Node> reference_nodes = {
-      {0, {1}, {}},
-      {1, {2}, {0}},
-      {2, {3}, {1}},
-      {3, {-1}, {2}},
+  std::vector<CFG::BasicBlock> reference_nodes = {
+      {0, 0, 4, {kEndNode}, {}},
   };
   checkCFG(CFG(graph), reference_nodes);
 }
 
 TEST(CFG, If) {
+  // CFG
   //
-  //  0 -> 1 -> 2 -> 3 (if) -> 4 -> 5 (endif) -> 6
-  //                 |                           ^
-  //                 ----------------------------
+  //  ---------------
+  //  |             v
+  //  0  ->  1  ->  2  ->  End
   //
-  ExpressionGraph graph;
-  graph.InsertBack(Expression::CreateCompileTimeConstant(1));
-  graph.InsertBack(Expression::CreateCompileTimeConstant(2));
-  graph.InsertBack(Expression::CreateBinaryCompare("<", 0, 1));
-  graph.InsertBack(Expression::CreateIf(2));
-  graph.InsertBack(Expression::CreateCompileTimeConstant(2));
-  graph.InsertBack(Expression::CreateEndIf());
-  graph.InsertBack(Expression::CreateCompileTimeConstant(2));
-  std::vector<CFG::Node> reference_nodes = {
-      {0, {1}, {}},
-      {1, {2}, {0}},
-      {2, {3}, {1}},
-      {3, {4, 6}, {2}},
-      {4, {5}, {3}},
-      {5, {6}, {4}},
-      {6, {-1}, {3, 5}},
+  //
+  // Dominator Tree
+  //
+  //       ------ 0 -------
+  //       1              2
+  //
+  StartRecordingExpressions();
+  T a = T(0);       // 0
+  T b = T(1);       // 1
+  auto r1 = a < b;  // 2
+  CERES_IF(r1) {    // 3
+    a = b;          // 4
+  }                 //
+  CERES_ENDIF;      // 5
+  a = b;            // 6
+  auto graph = StopRecordingExpressions();
+  std::vector<CFG::BasicBlock> reference_nodes = {
+      {0, 0, 4, {1, 2}},
+      {1, 4, 6, {2}},
+      {2, 6, 7, {kEndNode}},
   };
-  checkCFG(CFG(graph), reference_nodes);
+  std::vector<BlockId> idoms = {0, 0, 0};
+
+  CFG cfg(graph);
+  checkCFG(cfg, reference_nodes);
+  checkDom(cfg, idoms);
+}
+
+TEST(CFG, EmptyIf) {
+  // CFG
+  //
+  //  ---------------
+  //  |             v
+  //  0  ->  1  ->  2  ->  End
+  //
+  //
+  // Dominator Tree
+  //
+  //       ------ 0 -------
+  //       1              2
+  //
+  StartRecordingExpressions();
+  T a = T(0);       // 0
+  T b = T(1);       // 1
+  auto r1 = a < b;  // 2
+  CERES_IF(r1) {}   // 3
+  CERES_ENDIF;      // 5
+  a = b;            // 6
+  auto graph = StopRecordingExpressions();
+  std::vector<CFG::BasicBlock> reference_nodes = {
+      {0, 0, 4, {1, 2}, {}},
+      {1, 4, 5, {2}, {0}},
+      {2, 5, 6, {kEndNode}, {0, 1}},
+  };
+  std::vector<BlockId> idoms = {0, 0, 0};
+
+  CFG cfg(graph);
+  checkCFG(cfg, reference_nodes);
+  checkDom(cfg, idoms);
+}
+
+TEST(CFG, NestedIf) {
+  // CFG
+  //
+  //         ---------------
+  //         |             v
+  //  0  ->  1  ->  2  ->  3  ->  4  ->  End
+  //  |                           ^
+  //  -----------------------------
+  //
+  // Dominator Tree
+  //
+  //       ------ 0 -------
+  //   ----1----          4
+  //   2       3
+  //
+  StartRecordingExpressions();
+  T a = T(0);       // 0
+  T b = T(1);       // 1
+  auto r1 = a < b;  // 2
+  CERES_IF(r1) {    // 3
+    a = b;          // 4
+    CERES_IF(r1) {  // 5
+      a = b;        // 6
+    }               //
+    CERES_ENDIF;    // 7
+    a = b;          // 8
+  }                 //
+  CERES_ENDIF;      // 9
+  a = b;            // 10
+  auto graph = StopRecordingExpressions();
+  std::vector<CFG::BasicBlock> reference_nodes = {
+      {0, 0, 4, {1, 4}},
+      {1, 4, 6, {2, 3}},
+      {2, 6, 8, {3}},
+      {3, 8, 10, {4}},
+      {4, 10, 11, {kEndNode}},
+  };
+  std::vector<BlockId> idoms = {0, 0, 1, 1, 0};
+
+  CFG cfg(graph);
+  checkCFG(cfg, reference_nodes);
+  checkDom(cfg, idoms);
+}
+
+TEST(CFG, EmptyIfNoEnd) {
+  // CFG
+  //
+  //  ----------------
+  //  |              v
+  //  0  ->  1  ->  End
+  //
+  //
+  // Dominator Tree
+  //
+  //       ------ 0
+  //       1
+  //
+  StartRecordingExpressions();
+  T a = T(0);       // 0
+  T b = T(1);       // 1
+  auto r1 = a < b;  // 2
+  CERES_IF(r1) {}   // 3
+  CERES_ENDIF;      // 5
+  auto graph = StopRecordingExpressions();
+  std::vector<CFG::BasicBlock> reference_nodes = {
+      {0, 0, 4, {1, kEndNode}},
+      {1, 4, 5, {kEndNode}},
+  };
+  std::vector<BlockId> idoms = {0, 0};
+
+  CFG cfg(graph);
+  checkCFG(cfg, reference_nodes);
+  checkDom(cfg, idoms);
 }
 
 TEST(CFG, IfElse) {
-  //                                -------------------------------
-  //                                |                             v
-  //  0 -> 1 -> 2 -> 3 (if) -> 4 -> 5 (else)    6 -> 7 (endif) -> 8
-  //                 |                          ^
-  //                 ----------------------------
+  // CFG
   //
-  ExpressionGraph graph;
-  graph.InsertBack(Expression::CreateCompileTimeConstant(1));
-  graph.InsertBack(Expression::CreateCompileTimeConstant(2));
-  graph.InsertBack(Expression::CreateBinaryCompare("<", 0, 1));
-  graph.InsertBack(Expression::CreateIf(2));
-  graph.InsertBack(Expression::CreateCompileTimeConstant(2));
-  graph.InsertBack(Expression::CreateElse());
-  graph.InsertBack(Expression::CreateCompileTimeConstant(2));
-  graph.InsertBack(Expression::CreateEndIf());
-  graph.InsertBack(Expression::CreateCompileTimeConstant(2));
-  std::vector<CFG::Node> reference_nodes = {
-      {0, {1}, {}},
-      {1, {2}, {0}},
-      {2, {3}, {1}},
-      {3, {4, 6}, {2}},
-      {4, {5}, {3}},
-      {5, {8}, {4}},
-      {6, {7}, {3}},
-      {7, {8}, {6}},
-      {8, {-1}, {5, 7}},
+  //         ---------------
+  //         |             v
+  //  0  ->  1      2  ->  3  ->  End
+  //  |             ^
+  //  ---------------
+  //
+  // Dominator Tree
+  //
+  //      ------- 0 --------
+  //      1       2        3
+  //
+  //
+  StartRecordingExpressions();
+  T a = T(0);       // 0   -   0
+  T b = T(1);       // 1   -   0
+  auto r1 = a < b;  // 2   -   0
+  CERES_IF(r1) {    // 3   -   0
+    a = b;          // 4   -   1
+  }                 //
+  CERES_ELSE {      // 5   -   1
+    a = b;          // 6   -   2
+  }                 //
+  CERES_ENDIF;      // 7   -   2
+  a = b;            // 8   -   3
+  auto graph = StopRecordingExpressions();
+  std::vector<CFG::BasicBlock> reference_nodes = {
+      {0, 0, 4, {1, 2}},
+      {1, 4, 6, {3}},
+      {2, 6, 8, {3}},
+      {3, 8, 9, {kEndNode}},
   };
-  checkCFG(CFG(graph), reference_nodes);
+  std::vector<BlockId> idoms = {0, 0, 0, 0};
+
+  CFG cfg(graph);
+  checkCFG(cfg, reference_nodes);
+  checkDom(cfg, idoms);
+}
+
+TEST(CFG, NestedIfElse) {
+  // CFG
+  //         ---------------      ---------------
+  //         |             v      |             v
+  //  0  ->  1  ->  2      3  ->  4      5  ->  6  ->  End
+  //  |             |             ^      ^
+  //  |             ---------------      |
+  //  |                                  |
+  //  ------------------------------------
+  // Dominator Tree
+  //
+  //      ------- 0 -------------
+  // ---- 1 ----       5        6
+  // 2    3    4
+  //
+  StartRecordingExpressions();
+  T a = T(0);       // 0   -   0
+  T b = T(1);       // 1   -   0
+  auto r1 = a < b;  // 2   -   0
+  CERES_IF(r1) {    // 3   -   0
+    a = b;          // 4   -   1
+    CERES_IF(r1) {  // 5   -   1
+      a = b;        // 6   -   2
+    }               //
+    CERES_ELSE {    // 7   -   2
+      a = b;        // 8   -   3
+    }               //
+    CERES_ENDIF;    // 9   -   3
+    a = b;          // 10  -   4
+  }                 //
+  CERES_ELSE {      // 11  -   4
+    a = b;          // 12  -   5
+  }                 //
+  CERES_ENDIF;      // 13  -   5
+  a = b;            // 14  -   6
+  auto graph = StopRecordingExpressions();
+  std::vector<CFG::BasicBlock> reference_nodes = {
+      {0, 0, 4, {1, 5}},
+      {1, 4, 6, {2, 3}},
+      {2, 6, 8, {4}},
+      {3, 8, 10, {4}},
+      {4, 10, 12, {6}},
+      {5, 12, 14, {6}},
+      {6, 14, 15, {kEndNode}},
+  };
+  std::vector<BlockId> idoms = {0, 0, 1, 1, 1, 0, 0};
+
+  CFG cfg(graph);
+  checkCFG(cfg, reference_nodes);
+  checkDom(cfg, idoms);
 }
 
 }  // namespace internal

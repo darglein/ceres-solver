@@ -40,27 +40,50 @@
 namespace ceres {
 namespace internal {
 
-// The control flow graph (CFG) for an ExpressionGraph. The CFG is computed on instruction level. This mean, every expression is one node in the graph.
+// The control flow graph (CFG) for an ExpressionGraph.
+//
+//
 // https://en.wikipedia.org/wiki/Control-flow_graph
+
+using BlockId = int;
+static constexpr BlockId kEndNode = -1;
+
 class CFG {
  public:
+  struct BasicBlock {
+    BlockId id;
+    ExpressionId start, end;
+    std::vector<BlockId> outgoing_edges;
+    std::vector<BlockId> incoming_edges;
 
-  struct Node{
-    ExpressionId id;
-    std::vector<ExpressionId> outgoing_edges;
-    std::vector<ExpressionId> incoming_edges;
+    BasicBlock() = default;
+
+    size_t Size() const { return end - start; }
   };
 
-  // Creates the CFG for the given graph. If 'graph' is changed, this CFG is invalid.
-  CFG (const ExpressionGraph& graph);
+  // Creates the CFG for the given graph. If 'graph' is changed, this CFG is
+  // invalid.
+  CFG(const ExpressionGraph& graph);
 
-  const Node& NodeForId(ExpressionId id) const {
-    return nodes_[id];
+  BlockId Idom(BlockId id) const { return doms_[id]; }
+  const BasicBlock& NodeForId(BlockId id) const { return blocks_[id]; }
+  int Size() const { return blocks_.size(); }
+  BlockId BlockIdForExpressionId(ExpressionId id) {
+    return block_for_expression_[id];
   }
-  int Size() const { return nodes_.size(); }
- private:
 
-  std::vector<Node> nodes_;
+  void Print() const;
+
+  std::vector<BlockId> PostOrder(BlockId start = 0);
+
+ private:
+  std::vector<BlockId> doms_;
+  std::vector<BasicBlock> blocks_;
+  std::vector<BlockId> block_for_expression_;
+
+  void PostOrder(BlockId block,
+                 std::vector<BlockId>* result,
+                 std::vector<bool>* visisted);
 };
 }  // namespace internal
 }  // namespace ceres
