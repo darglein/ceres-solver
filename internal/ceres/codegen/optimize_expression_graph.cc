@@ -30,8 +30,10 @@
 
 #include "ceres/codegen/internal/optimize_expression_graph.h"
 
+#include "ceres/codegen/internal/constant_optimization.h"
 #include "ceres/codegen/internal/eliminate_nops.h"
 #include "ceres/codegen/internal/remove_unused_code.h"
+#include "ceres/codegen/internal/subexpressions.h"
 #include "glog/logging.h"
 namespace ceres {
 namespace internal {
@@ -89,6 +91,34 @@ OptimizeExpressionGraphSummary OptimizeExpressionGraph(
 
     {
       auto pass_summary = TrivialAssignmentElimination(graph);
+      changed |= pass_summary.expression_graph_changed;
+      summary.summaries.push_back(pass_summary);
+    }
+
+    {
+      auto pass_summary = ReorderCompileTimeConstants(graph);
+      changed |= pass_summary.expression_graph_changed;
+      summary.summaries.push_back(pass_summary);
+    }
+
+    {
+      auto pass_summary = MergeCompileTimeConstants(graph);
+      changed |= pass_summary.expression_graph_changed;
+      summary.summaries.push_back(pass_summary);
+    }
+    {
+      auto pass_summary = ZeroOnePropagation(graph);
+      changed |= pass_summary.expression_graph_changed;
+      summary.summaries.push_back(pass_summary);
+    }
+    if (options.eliminate_nops) {
+      auto pass_summary = EliminateNops(graph);
+      changed |= pass_summary.expression_graph_changed;
+      summary.summaries.push_back(pass_summary);
+    }
+
+    {
+      auto pass_summary = RemoveCommonSubexpressions(graph);
       changed |= pass_summary.expression_graph_changed;
       summary.summaries.push_back(pass_summary);
     }

@@ -39,6 +39,8 @@ namespace ceres {
 namespace internal {
 
 inline void double_compare(double v1, double v2) {
+  if (std::isnan(v2)) return;
+
   // If both are inf or nan it's fine too!
   if (std::isinf(v1) && std::isinf(v2)) {
     return;

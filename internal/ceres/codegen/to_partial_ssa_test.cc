@@ -31,11 +31,13 @@
 #define CERES_CODEGEN
 
 #include "ceres/codegen/internal/code_generator.h"
+#include "ceres/codegen/internal/constant_optimization.h"
 #include "ceres/codegen/internal/eliminate_nops.h"
 #include "ceres/codegen/internal/expression_graph.h"
 #include "ceres/codegen/internal/expression_ref.h"
 #include "ceres/codegen/internal/optimize_expression_graph.h"
 #include "ceres/codegen/internal/remove_unused_code.h"
+#include "ceres/codegen/internal/subexpressions.h"
 #include "ceres/jet.h"
 #include "gtest/gtest.h"
 
@@ -80,9 +82,12 @@ TEST(ToPartialSSA, If) {
   StartRecordingExpressions();
   using T = Jet<ExpressionRef, 2>;
   {
-    T a = T(1);
-    T a2 = T(ExpressionRef(2), 1);
-    T b = pow(a, a2);
+    T x = T(MakeParameter("input"));
+    T a = sin(x);
+    T a2 = sin(x);
+
+    T b = a + a2;
+    //    T b = pow(a, a2);
 
     MakeOutput(b.a, "a");
     MakeOutput(b.v[0], "a");
@@ -110,6 +115,22 @@ TEST(ToPartialSSA, If) {
     }
     {
       auto summary = TrivialAssignmentElimination(&graph);
+      changed |= summary.expression_graph_changed;
+    }
+    {
+      auto summary = ReorderCompileTimeConstants(&graph);
+      changed |= summary.expression_graph_changed;
+    }
+    {
+      auto summary = MergeCompileTimeConstants(&graph);
+      changed |= summary.expression_graph_changed;
+    }
+    {
+      auto summary = ZeroOnePropagation(&graph);
+      changed |= summary.expression_graph_changed;
+    }
+    {
+      auto summary = RemoveCommonSubexpressions(&graph);
       changed |= summary.expression_graph_changed;
     }
   }

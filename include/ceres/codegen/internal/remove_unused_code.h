@@ -161,6 +161,17 @@ inline OptimizationPassSummary TrivialAssignmentElimination(
       continue;
     }
 
+    if (expr.type() == ExpressionType::ASSIGNMENT) {
+      auto& target_expr = graph->ExpressionForId(expr.arguments()[0]);
+      if (dep.IsSSA() &&
+          target_expr.type() == ExpressionType::COMPILE_TIME_CONSTANT) {
+        expr.Replace(
+            Expression::CreateCompileTimeConstant(target_expr.value()));
+        summary.num_expressions_modified++;
+        continue;
+      }
+    }
+
     //    if (expr.type() != ExpressionType::ASSIGNMENT &&
     //        expr.type() != ExpressionType::OUTPUT_ASSIGNMENT) {
     //      continue;
