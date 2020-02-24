@@ -79,6 +79,7 @@ inline OptimizationPassSummary RemoveCommonSubexpressions(ExpressionGraph* graph
         other_expr.Replace(Expression::CreateAssignment(kInvalidExpressionId,id));
         summary.num_expressions_modified++;
       }
+
     }
 
   }

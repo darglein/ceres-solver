@@ -117,7 +117,7 @@ OptimizeExpressionGraphSummary OptimizeExpressionGraph(
       summary.summaries.push_back(pass_summary);
     }
 
-    {
+    if (summary.num_iterations > 2) {
       auto pass_summary = RemoveCommonSubexpressions(graph);
       changed |= pass_summary.expression_graph_changed;
       summary.summaries.push_back(pass_summary);

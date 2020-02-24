@@ -47,7 +47,7 @@ namespace internal {
 
 using BlockId = int;
 static constexpr BlockId kEndNode = -1;
-static constexpr BlockId kStartNode = -1;
+static constexpr BlockId kStartNode = 0;
 
 class CFG {
  public:

@@ -113,5 +113,5 @@ if (BUILD_BENCHMARKS)
   add_dependencies_to_benchmark(gen_rat43_benchmark Rat43CostFunctor)
 
   add_executable(gen_ba_benchmark gen_ba_benchmark.cc)
-  add_dependencies_to_benchmark(gen_ba_benchmark RotatePoint SnavelyReprojectionErrorGen)
+  add_dependencies_to_benchmark(gen_ba_benchmark SnavelyReprojectionErrorGen)
 endif()
