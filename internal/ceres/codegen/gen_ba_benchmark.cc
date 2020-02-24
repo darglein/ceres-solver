@@ -37,7 +37,7 @@
 
 namespace ceres {
 
-static void BM_BundleAdjustmentAutoDiff(benchmark::State& state) {
+static void BM_BAAutoDiff(benchmark::State& state) {
   double parameter_block1[] = {1., 2., 3., 4., 5., 6.};
   double parameter_block2[] = {1., 2., 3.};
   double* parameters[] = {parameter_block1, parameter_block2};
@@ -59,7 +59,7 @@ static void BM_BundleAdjustmentAutoDiff(benchmark::State& state) {
   }
 }
 
-static void BM_BundleAdjustmentCodeGen(benchmark::State& state) {
+static void BM_BACodeGen(benchmark::State& state) {
   double parameter_block1[] = {1., 2., 3., 4., 5., 6.};
   double parameter_block2[] = {1., 2., 3.};
   double* parameters[] = {parameter_block1, parameter_block2};
@@ -81,8 +81,10 @@ static void BM_BundleAdjustmentCodeGen(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_BundleAdjustmentAutoDiff)->Arg(0)->Arg(1);
-BENCHMARK(BM_BundleAdjustmentCodeGen)->Arg(0)->Arg(1);
+BENCHMARK(BM_BAAutoDiff)->ArgName("R")->Arg(0);
+BENCHMARK(BM_BAAutoDiff)->ArgName("R+J")->Arg(1);
+BENCHMARK(BM_BACodeGen)->ArgName("R")->Arg(0);
+BENCHMARK(BM_BACodeGen)->ArgName("R+J")->Arg(1);
 
 }  // namespace ceres
 
