@@ -31,39 +31,46 @@
 #ifndef CERES_PUBLIC_CODEGEN_EXPRESSION_DEPENDENCIES_H_
 #define CERES_PUBLIC_CODEGEN_EXPRESSION_DEPENDENCIES_H_
 
+#include <iostream>
 #include <vector>
 
 #include "ceres/codegen/internal/expression.h"
 #include "ceres/codegen/internal/expression_graph.h"
-
+#include "glog/logging.h"
 namespace ceres {
 namespace internal {
 
-
 class ExpressionDependencies {
  public:
-
-  struct Data{
-
-    // All other expressions that write to the left hand side of this expression.
+  struct Data {
+    // All other expressions that write to the left hand side of this
+    // expression.
     std::vector<ExpressionId> written_to;
 
-    // All other expressions that use the left hand side of this expression as an argument.
+    // All other expressions that use the left hand side of this expression as
+    // an argument.
     std::vector<ExpressionId> used_by;
 
-    // An expression is in SSA form if the left hand side is written to exactly once.
-    bool IsSSA()const { return written_to.size() == 1;}
+    // An expression is in SSA form if the left hand side is written to exactly
+    // once.
+    bool IsSSA() const { return written_to.size() == 1; }
 
-    bool Unused()const { return used_by.empty();}
+    bool Unused() const { return used_by.empty(); }
   };
   ExpressionDependencies(const ExpressionGraph& graph);
 
   const Data& DataForExpressionId(ExpressionId id) {
+    CHECK(id != kInvalidExpressionId) << id;
+    CHECK(graph_->ExpressionForId(id).lhs_id() != kInvalidExpressionId)
+        << graph_->ExpressionForId(id).lhs_id() << " " << id;
+    CHECK(graph_->ExpressionForId(id).lhs_id() == id)
+        << graph_->ExpressionForId(id).lhs_id() << " " << id;
     return data_[id];
   }
+
  private:
   std::vector<Data> data_;
-
+  const ExpressionGraph* graph_;
 };
 }  // namespace internal
 }  // namespace ceres

@@ -35,7 +35,7 @@ namespace ceres {
 namespace internal {
 
 ExpressionDependencies::ExpressionDependencies(const ExpressionGraph& graph)
-    : data_(graph.Size()) {
+    : data_(graph.Size()), graph_(&graph) {
   for (ExpressionId id = 0; id < graph.Size(); ++id) {
     auto& expr = graph.ExpressionForId(id);
     auto& data = data_[id];

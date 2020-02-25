@@ -40,53 +40,50 @@
 namespace ceres {
 namespace internal {
 
-inline OptimizationPassSummary RemoveCommonSubexpressions(ExpressionGraph* graph) {
+inline OptimizationPassSummary RemoveCommonSubexpressions(
+    ExpressionGraph* graph) {
   OptimizationPassSummary summary;
   summary.optimization_pass_name = "RemoveCommonSubexpressions";
 
   ExpressionDependencies dep(*graph);
   CFG cfg(*graph);
 
-  for(ExpressionId id = 0; id < graph->Size(); ++id)
-  {
+  for (ExpressionId id = 0; id < graph->Size(); ++id) {
     auto& expr = graph->ExpressionForId(id);
-    if(!dep.DataForExpressionId(id).IsSSA()) continue;
-    if(!expr.HasValidLhs()) continue;
+    if (!expr.HasValidLhs()) continue;
+    if (!dep.DataForExpressionId(expr.lhs_id()).IsSSA()) continue;
 
     bool all_params_ssa = true;
-    for(auto& p : expr.arguments())
-    {
-      if(!dep.DataForExpressionId(p).IsSSA()){
+    for (auto& p : expr.arguments()) {
+      CHECK(p != kInvalidExpressionId);
+      if (!dep.DataForExpressionId(p).IsSSA()) {
         all_params_ssa = false;
         break;
       }
     }
 
-    if(!all_params_ssa)
-      continue;
+    if (!all_params_ssa) continue;
 
-    for(ExpressionId other = 0; other < graph->Size(); ++other)
-    {
+    for (ExpressionId other = 0; other < graph->Size(); ++other) {
       auto& other_expr = graph->ExpressionForId(other);
-      if(other == id) continue;
-      if(!dep.DataForExpressionId(other).IsSSA()) continue;
-      if(!expr.HasValidLhs()) continue;
+      if (other == id) continue;
+      if (!other_expr.HasValidLhs()) continue;
+      if (!dep.DataForExpressionId(other_expr.lhs_id()).IsSSA()) continue;
 
-      if(expr.IsReplaceableBy(other_expr) && cfg.DominateExpression(id,other))
-      {
-//        std::cout << "replaceable " << id << " " << other << std::endl;
+      if (expr.IsReplaceableBy(other_expr) &&
+          cfg.DominateExpression(id, other)) {
+        //        std::cout << "replaceable " << id << " " << other <<
+        //        std::endl;
         // replace by assignment
-        other_expr.Replace(Expression::CreateAssignment(kInvalidExpressionId,id));
+        other_expr.Replace(
+            Expression::CreateAssignment(kInvalidExpressionId, id));
         summary.num_expressions_modified++;
+        dep = ExpressionDependencies(*graph);
       }
-
     }
-
   }
 
-
-  summary.expression_graph_changed =
-      summary.num_expressions_modified > 0;
+  summary.expression_graph_changed = summary.num_expressions_modified > 0;
   return summary;
 }
 

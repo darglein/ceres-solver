@@ -97,11 +97,11 @@ inline OptimizationPassSummary ToPartialSSA(ExpressionGraph* graph) {
 
   for (ExpressionId id = 0; id < graph->Size(); ++id) {
     Expression& expr = graph->ExpressionForId(id);
-    auto& dep = expr_dep.DataForExpressionId(id);
     if (!expr.HasValidLhs()) {
       continue;
     }
 
+    auto& dep = expr_dep.DataForExpressionId(expr.lhs_id());
     if (dep.IsSSA()) {
       continue;
     }
@@ -155,11 +155,10 @@ inline OptimizationPassSummary TrivialAssignmentElimination(
 
   for (ExpressionId id = graph->Size() - 1; id >= 0; --id) {
     Expression& expr = graph->ExpressionForId(id);
-    auto dep = deps.DataForExpressionId(id);
-
     if (!expr.HasValidLhs()) {
       continue;
     }
+    auto dep = deps.DataForExpressionId(expr.lhs_id());
 
     if (expr.type() == ExpressionType::ASSIGNMENT) {
       auto& target_expr = graph->ExpressionForId(expr.arguments()[0]);
