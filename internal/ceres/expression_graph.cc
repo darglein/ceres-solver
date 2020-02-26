@@ -224,5 +224,18 @@ ExpressionId ExpressionGraph::FindMatchingElse(ExpressionId id) const {
   return kInvalidExpressionId;
 }
 
+Expression& ExpressionGraph::ExpressionForId(ExpressionId id) {
+  CHECK_GE(id, 0);
+  CHECK_LT(id, Size());
+  return expressions_[id];
+}
+
+const Expression& ceres::internal::ExpressionGraph::ExpressionForId(
+    ExpressionId id) const {
+  CHECK_GE(id, 0);
+  CHECK_LT(id, Size());
+  return expressions_[id];
+}
+
 }  // namespace internal
 }  // namespace ceres

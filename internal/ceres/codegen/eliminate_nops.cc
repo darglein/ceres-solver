@@ -31,13 +31,13 @@
 #include "ceres/codegen/internal/eliminate_nops.h"
 
 #include "glog/logging.h"
-
 namespace ceres {
 namespace internal {
 
 OptimizationPassSummary EliminateNops(ExpressionGraph* graph) {
   OptimizationPassSummary summary;
   summary.optimization_pass_name = "EliminateNops";
+  summary.start();
 
   for (ExpressionId id = 0; id < graph->Size(); ++id) {
     Expression& expr = graph->ExpressionForId(id);
@@ -49,6 +49,7 @@ OptimizationPassSummary EliminateNops(ExpressionGraph* graph) {
     }
   }
   summary.expression_graph_changed = summary.num_expressions_removed > 0;
+  summary.end();
   return summary;
 }
 

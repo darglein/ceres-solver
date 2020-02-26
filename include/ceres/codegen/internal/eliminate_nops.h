@@ -47,7 +47,6 @@ namespace internal {
 //   expressions. Therefore, other optimization passes replace expression with
 //   NOP instead of removing them. This optimization pass removes all NOPs back
 //   to front.
-//   The returned value is equal to the number of removed NOPs.
 //
 // Example:
 //   v_0 = 1;
@@ -58,7 +57,6 @@ namespace internal {
 //   v_0 = 1;
 //   v_1 = 2;
 //   v_2 = v_0 + v_1;
-
 OptimizationPassSummary EliminateNops(ExpressionGraph* graph);
 
 }  // namespace internal

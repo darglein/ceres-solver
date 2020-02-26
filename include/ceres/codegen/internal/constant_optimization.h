@@ -42,20 +42,57 @@
 namespace ceres {
 namespace internal {
 
-// Two passes.
-//   1. Move all compile time constants to the beginning.
-inline OptimizationPassSummary ReorderCompileTimeConstants(
+// The "Constant Section" of an ExpressionGraph is the index range at the
+// beginning of the program which contains only COMPILE_TIME_CONSTANT
+// expressions. The end of this section is therefore the first Expression from
+// the beginning that is not COMPILE_TIME_CONSTANT.
+inline ExpressionId EndOfConstantSection(const ExpressionGraph& graph) {
+  for (ExpressionId id = 0; id < graph.Size(); ++id) {
+    if (graph.ExpressionForId(id).type() !=
+        ExpressionType::COMPILE_TIME_CONSTANT)
+      return id;
+  }
+  return graph.Size();
+}
+
+// [OptimizationPass] Move Compile Time Constants To The Beginning
+//
+// Short Description:
+//   Moves compile time constants to the start of the program.
+//
+// Description:
+//   Having all compile time constants at the beginning of a program is
+//   beneficial, because other optimizations passes don't have to check scoping,
+//   dominance, and definition order.
+//
+// Example:
+//   v_0 = 1;
+//   v_1 = v_0 + v_0;
+//   v_2 = 42;
+//   if ( v_0 < v_2 ) {
+//      v_4 = 6;
+//      v_3 = v_4 + v_2;
+//   }
+//   v_6 = v_0 + v_2
+//
+// Transforms to:
+//   v_0 = 1;
+//   v_1 = 42;
+//   v_2 = 6;
+//   v_3 = v_0 + v_0;
+//   // NOP
+//   if ( v_0 < v_3 ) {
+//      // NOP
+//      v_4 = v_2 + v_3;
+//   }
+//   v_6 = v_0 + v_3
+//
+inline OptimizationPassSummary MoveConstantsToBeginning(
     ExpressionGraph* graph) {
   OptimizationPassSummary summary;
   summary.optimization_pass_name = "ReorderCompileTimeConstants";
-
-  ExpressionId end_of_constant_section = 0;
-  for (; end_of_constant_section < graph->Size(); ++end_of_constant_section) {
-    if (graph->ExpressionForId(end_of_constant_section).type() !=
-        ExpressionType::COMPILE_TIME_CONSTANT)
-      break;
-  }
-  if (end_of_constant_section == graph->Size()) return summary;
+  summary.start();
+  ExpressionId end_of_constant_section = EndOfConstantSection(*graph);
 
   for (ExpressionId id = end_of_constant_section; id < graph->Size(); ++id) {
     auto& expr = graph->ExpressionForId(id);
@@ -81,6 +118,7 @@ inline OptimizationPassSummary ReorderCompileTimeConstants(
       summary.expression_graph_changed = true;
     }
   }
+  summary.end();
   return summary;
 }
 
@@ -103,13 +141,8 @@ inline OptimizationPassSummary MergeCompileTimeConstants(
   OptimizationPassSummary summary;
   summary.optimization_pass_name = "MergeCompileTimeConstants";
 
-  ExpressionId end_of_constant_section = 0;
-  for (; end_of_constant_section < graph->Size(); ++end_of_constant_section) {
-    if (graph->ExpressionForId(end_of_constant_section).type() !=
-        ExpressionType::COMPILE_TIME_CONSTANT)
-      break;
-  }
-  if (end_of_constant_section == graph->Size()) return summary;
+  summary.start();
+  ExpressionId end_of_constant_section = EndOfConstantSection(*graph);
 
   for (ExpressionId id = 0; id < end_of_constant_section; ++id) {
     auto& expr = graph->ExpressionForId(id);
@@ -138,95 +171,165 @@ inline OptimizationPassSummary MergeCompileTimeConstants(
       }
     }
   }
-
+  summary.end();
   return summary;
 }
 
-// Merge compile time constants of the same value.
-// Only merges values from the constant section
-inline OptimizationPassSummary ZeroOnePropagation(ExpressionGraph* graph) {
+// Applies the following optimizations:
+//
+//  Zero Propagation
+//    v_1 = 0 * v_0;        ->        v_1 = 0
+//    v_1 = v_0 * 0;        ->        v_1 = 0
+//    v_1 = 0 / v_0;        ->        v_1 = 0
+//    v_1 = v_0 / 0;        ->        v_1 = nan
+//    v_1 = 0 + v_0;        ->        v_1 = v_0
+//    v_1 = v_0 + 0;        ->        v_1 = v_0
+//    v_1 = 0 - v_0;        ->        v_1 = -v_0
+//    v_1 = v_0 - 0;        ->        v_1 = v_0
+//  One Propagation
+//    v_1  = 1 * v_0;       ->        v_1 = v_0
+//    v_1  = v_0 * 1;       ->        v_1 = v_0
+//    v_1  = v_0 / 1;       ->        v_1 = v_0
+//
+// In strict-mode, transformation that don't conform with the IEEE 754 floating
+// point rules are not performed. This affects the multiplication and division
+// by zero.
+inline OptimizationPassSummary ZeroOnePropagation(
+    ExpressionGraph* graph, bool strict_ieee_float = false) {
   OptimizationPassSummary summary;
   summary.optimization_pass_name = "ZeroOnePropagation";
+  summary.start();
 
   for (ExpressionId id = 0; id < graph->Size(); ++id) {
     auto& expr = graph->ExpressionForId(id);
 
     if (expr.type() == ExpressionType::BINARY_ARITHMETIC) {
+      auto left_id = expr.arguments()[0];
+      auto right_id = expr.arguments()[1];
+      auto& left_expr = graph->ExpressionForId(left_id);
+      auto& right_expr = graph->ExpressionForId(right_id);
+
       if (expr.name() == "*") {
-        if (graph->ExpressionForId(expr.arguments()[0])
-                .IsCompileTimeConstantAndEqualTo(0) ||
-            graph->ExpressionForId(expr.arguments()[1])
-                .IsCompileTimeConstantAndEqualTo(0)) {
+        if (!strict_ieee_float &&
+            (left_expr.IsCompileTimeConstantAndEqualTo(0) ||
+             right_expr.IsCompileTimeConstantAndEqualTo(0))) {
           // One of the operants is 0
           // -> replace with constant 0
           expr.Replace(Expression::CreateCompileTimeConstant(0));
           summary.num_expressions_modified++;
-          continue;
-        }
-        if (graph->ExpressionForId(expr.arguments()[0])
-                .IsCompileTimeConstantAndEqualTo(1)) {
-          expr.Replace(Expression::CreateAssignment(kInvalidExpressionId,
-                                                    expr.arguments()[1]));
+        } else if (left_expr.IsCompileTimeConstantAndEqualTo(1)) {
+          expr.Replace(
+              Expression::CreateAssignment(kInvalidExpressionId, right_id));
           summary.num_expressions_modified++;
-          continue;
-        }
-        if (graph->ExpressionForId(expr.arguments()[1])
-                .IsCompileTimeConstantAndEqualTo(1)) {
-          expr.Replace(Expression::CreateAssignment(kInvalidExpressionId,
-                                                    expr.arguments()[0]));
+        } else if (right_expr.IsCompileTimeConstantAndEqualTo(1)) {
+          expr.Replace(
+              Expression::CreateAssignment(kInvalidExpressionId, left_id));
           summary.num_expressions_modified++;
-          continue;
         }
-      }
-      if (expr.name() == "/") {
-        if (graph->ExpressionForId(expr.arguments()[0])
-                .IsCompileTimeConstantAndEqualTo(0)) {
+      } else if (expr.name() == "/") {
+        if (!strict_ieee_float &&
+            left_expr.IsCompileTimeConstantAndEqualTo(0)) {
           expr.Replace(Expression::CreateCompileTimeConstant(0));
           summary.num_expressions_modified++;
-          continue;
-        }
-        if (graph->ExpressionForId(expr.arguments()[1])
-                .IsCompileTimeConstantAndEqualTo(0)) {
-          expr.Replace(Expression::CreateCompileTimeConstant(1.0 / 0.0));
+        } else if (!strict_ieee_float &&
+                   right_expr.IsCompileTimeConstantAndEqualTo(0)) {
+          expr.Replace(Expression::CreateCompileTimeConstant(
+              std::numeric_limits<double>::quiet_NaN()));
           summary.num_expressions_modified++;
-          continue;
         }
-      }
-      if (expr.name() == "+") {
-        if (graph->ExpressionForId(expr.arguments()[0])
-                .IsCompileTimeConstantAndEqualTo(0)) {
-          expr.Replace(Expression::CreateAssignment(kInvalidExpressionId,
-                                                    expr.arguments()[1]));
-          summary.num_expressions_modified++;
-          continue;
-        }
-        if (graph->ExpressionForId(expr.arguments()[1])
-                .IsCompileTimeConstantAndEqualTo(0)) {
-          expr.Replace(Expression::CreateAssignment(kInvalidExpressionId,
-                                                    expr.arguments()[0]));
-          summary.num_expressions_modified++;
-          continue;
-        }
-      }
-      if (expr.name() == "-") {
-        if (graph->ExpressionForId(expr.arguments()[0])
-                .IsCompileTimeConstantAndEqualTo(0)) {
+      } else if (expr.name() == "+") {
+        if (left_expr.IsCompileTimeConstantAndEqualTo(0)) {
           expr.Replace(
-              Expression::CreateUnaryArithmetic("-", expr.arguments()[1]));
+              Expression::CreateAssignment(kInvalidExpressionId, right_id));
           summary.num_expressions_modified++;
-          continue;
+        } else if (right_expr.IsCompileTimeConstantAndEqualTo(0)) {
+          expr.Replace(
+              Expression::CreateAssignment(kInvalidExpressionId, left_id));
+          summary.num_expressions_modified++;
         }
-        if (graph->ExpressionForId(expr.arguments()[1])
-                .IsCompileTimeConstantAndEqualTo(0)) {
-          expr.Replace(Expression::CreateAssignment(kInvalidExpressionId,
-                                                    expr.arguments()[0]));
+      } else if (expr.name() == "-") {
+        if (left_expr.IsCompileTimeConstantAndEqualTo(0)) {
+          expr.Replace(Expression::CreateUnaryArithmetic("-", right_id));
           summary.num_expressions_modified++;
           continue;
+        } else if (right_expr.IsCompileTimeConstantAndEqualTo(0)) {
+          expr.Replace(
+              Expression::CreateAssignment(kInvalidExpressionId, left_id));
+          summary.num_expressions_modified++;
         }
       }
     }
   }
   summary.expression_graph_changed = summary.num_expressions_modified > 0;
+  summary.end();
+  return summary;
+}
+
+inline OptimizationPassSummary ConstantFolding(ExpressionGraph* graph) {
+  OptimizationPassSummary summary;
+  summary.optimization_pass_name = "ConstantFolding";
+  summary.start();
+  ExpressionDependencies dep(*graph);
+  for (ExpressionId id = 0; id < graph->Size(); ++id) {
+    auto& expr = graph->ExpressionForId(id);
+    if (!expr.HasValidLhs()) continue;
+    if (!dep.DataForExpressionId(expr.lhs_id()).IsSSA()) continue;
+    if (expr.type() == ExpressionType::COMPILE_TIME_CONSTANT) continue;
+
+    // Check if all args are compile time constants
+    bool all_const = true;
+    for (auto a : expr.arguments()) {
+      if (graph->ExpressionForId(a).type() !=
+          ExpressionType::COMPILE_TIME_CONSTANT) {
+        all_const = false;
+        break;
+      }
+    }
+    if (!all_const) {
+      continue;
+    }
+
+    // Evaluate + replace by compile time constant
+    switch (expr.type()) {
+      case ExpressionType::UNARY_ARITHMETIC: {
+        auto& rhs_expr0 = graph->ExpressionForId(expr.arguments()[0]);
+        if (expr.name() == "+") {
+          double value = +rhs_expr0.value();
+          expr.Replace(Expression::CreateCompileTimeConstant(value));
+          summary.num_expressions_modified++;
+        } else if (expr.name() == "-") {
+          double value = -rhs_expr0.value();
+          expr.Replace(Expression::CreateCompileTimeConstant(value));
+          summary.num_expressions_modified++;
+        }
+        break;
+      }
+      case ExpressionType::BINARY_ARITHMETIC: {
+        auto& rhs_expr0 = graph->ExpressionForId(expr.arguments()[0]);
+        auto& rhs_expr1 = graph->ExpressionForId(expr.arguments()[1]);
+        if (expr.name() == "+") {
+          double value = rhs_expr0.value() + rhs_expr1.value();
+          expr.Replace(Expression::CreateCompileTimeConstant(value));
+          summary.num_expressions_modified++;
+        } else if (expr.name() == "-") {
+          double value = rhs_expr0.value() - rhs_expr1.value();
+          expr.Replace(Expression::CreateCompileTimeConstant(value));
+          summary.num_expressions_modified++;
+        } else if (expr.name() == "*") {
+          double value = rhs_expr0.value() * rhs_expr1.value();
+          expr.Replace(Expression::CreateCompileTimeConstant(value));
+          summary.num_expressions_modified++;
+        } else if (expr.name() == "/") {
+          double value = rhs_expr0.value() / rhs_expr1.value();
+          expr.Replace(Expression::CreateCompileTimeConstant(value));
+          summary.num_expressions_modified++;
+        }
+      }
+    }
+  }
+  summary.expression_graph_changed = summary.num_expressions_modified > 0;
+  summary.end();
+
   return summary;
 }
 

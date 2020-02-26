@@ -57,10 +57,8 @@ class ExpressionGraph {
     return !(*this == other);
   }
 
-  Expression& ExpressionForId(ExpressionId id) { return expressions_[id]; }
-  const Expression& ExpressionForId(ExpressionId id) const {
-    return expressions_[id];
-  }
+  Expression& ExpressionForId(ExpressionId id);
+  const Expression& ExpressionForId(ExpressionId id) const;
 
   int Size() const { return expressions_.size(); }
 

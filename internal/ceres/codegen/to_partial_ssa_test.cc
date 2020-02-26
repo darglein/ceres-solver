@@ -118,7 +118,7 @@ TEST(ToPartialSSA, If) {
       changed |= summary.expression_graph_changed;
     }
     {
-      auto summary = ReorderCompileTimeConstants(&graph);
+      auto summary = MoveConstantsToBeginning(&graph);
       changed |= summary.expression_graph_changed;
     }
     {

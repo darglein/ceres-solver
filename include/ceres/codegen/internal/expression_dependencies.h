@@ -31,7 +31,6 @@
 #ifndef CERES_PUBLIC_CODEGEN_EXPRESSION_DEPENDENCIES_H_
 #define CERES_PUBLIC_CODEGEN_EXPRESSION_DEPENDENCIES_H_
 
-#include <iostream>
 #include <vector>
 
 #include "ceres/codegen/internal/expression.h"
@@ -59,18 +58,20 @@ class ExpressionDependencies {
   };
   ExpressionDependencies(const ExpressionGraph& graph);
 
+  void rebuild();
+
   const Data& DataForExpressionId(ExpressionId id) {
     CHECK(id != kInvalidExpressionId) << id;
-    CHECK(graph_->ExpressionForId(id).lhs_id() != kInvalidExpressionId)
-        << graph_->ExpressionForId(id).lhs_id() << " " << id;
-    CHECK(graph_->ExpressionForId(id).lhs_id() == id)
-        << graph_->ExpressionForId(id).lhs_id() << " " << id;
+    CHECK(graph_.ExpressionForId(id).lhs_id() != kInvalidExpressionId)
+        << graph_.ExpressionForId(id).lhs_id() << " " << id;
+    CHECK(graph_.ExpressionForId(id).lhs_id() == id)
+        << graph_.ExpressionForId(id).lhs_id() << " " << id;
     return data_[id];
   }
 
  private:
   std::vector<Data> data_;
-  const ExpressionGraph* graph_;
+  const ExpressionGraph& graph_;
 };
 }  // namespace internal
 }  // namespace ceres

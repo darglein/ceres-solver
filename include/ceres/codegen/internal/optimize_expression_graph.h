@@ -41,7 +41,7 @@ namespace ceres {
 namespace internal {
 
 struct OptimizeExpressionGraphOptions {
-  int max_num_iterations = 100;
+  int max_num_iterations = 1000;
   bool eliminate_nops = true;
 };
 
@@ -52,8 +52,6 @@ struct OptimizeExpressionGraphSummary {
 
 std::ostream& operator<<(std::ostream& strm,
                          const OptimizeExpressionGraphSummary& summary);
-std::ostream& operator<<(std::ostream& strm,
-                         const OptimizationPassSummary& summary);
 
 // Optimize the given ExpressionGraph in-place according to the defined
 // OptimizeExpressionGraphOptions. This will change the ExpressionGraph, but the

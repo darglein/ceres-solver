@@ -32,26 +32,11 @@
 
 #include "ceres/codegen/internal/constant_optimization.h"
 #include "ceres/codegen/internal/eliminate_nops.h"
+#include "ceres/codegen/internal/remove_common_subexpressions.h"
 #include "ceres/codegen/internal/remove_unused_code.h"
-#include "ceres/codegen/internal/subexpressions.h"
 #include "glog/logging.h"
 namespace ceres {
 namespace internal {
-
-std::ostream& operator<<(std::ostream& strm,
-                         const OptimizationPassSummary& summary) {
-  strm << "[" << summary.optimization_pass_name << "]" << std::endl;
-  strm << "   Changed        :" << summary.expression_graph_changed
-       << std::endl;
-  strm << "   Replaced by NOP: " << summary.num_expressions_replaced_by_nop
-       << std::endl;
-  strm << "   Removed        : " << summary.num_expressions_removed
-       << std::endl;
-  strm << "   Inserted       : " << summary.num_expressions_inserted
-       << std::endl;
-  strm << "   Modified       : " << summary.num_expressions_modified;
-  return strm;
-}
 
 std::ostream& operator<<(std::ostream& strm,
                          const OptimizeExpressionGraphSummary& summary) {
@@ -96,7 +81,7 @@ OptimizeExpressionGraphSummary OptimizeExpressionGraph(
     }
 
     {
-      auto pass_summary = ReorderCompileTimeConstants(graph);
+      auto pass_summary = MoveConstantsToBeginning(graph);
       changed |= pass_summary.expression_graph_changed;
       summary.summaries.push_back(pass_summary);
     }
@@ -111,17 +96,25 @@ OptimizeExpressionGraphSummary OptimizeExpressionGraph(
       changed |= pass_summary.expression_graph_changed;
       summary.summaries.push_back(pass_summary);
     }
+    {
+      auto pass_summary = ConstantFolding(graph);
+      changed |= pass_summary.expression_graph_changed;
+      summary.summaries.push_back(pass_summary);
+    }
     if (options.eliminate_nops) {
       auto pass_summary = EliminateNops(graph);
       changed |= pass_summary.expression_graph_changed;
       summary.summaries.push_back(pass_summary);
     }
 
-    if (summary.num_iterations > 2) {
+    //    if (summary.num_iterations > 2)
+    if (1) {
       auto pass_summary = RemoveCommonSubexpressions(graph);
       changed |= pass_summary.expression_graph_changed;
       summary.summaries.push_back(pass_summary);
     }
+#if 0
+#endif
     if (!changed) {
       break;
     }

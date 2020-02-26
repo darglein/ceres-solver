@@ -43,7 +43,7 @@ namespace internal {
 inline OptimizationPassSummary RemoveUnusedCode(ExpressionGraph* graph) {
   OptimizationPassSummary summary;
   summary.optimization_pass_name = "RemoveUnusedCode";
-
+  summary.start();
   ExpressionDependencies dep(*graph);
 
   for (ExpressionId id = graph->Size() - 1; id >= 0; --id) {
@@ -57,7 +57,7 @@ inline OptimizationPassSummary RemoveUnusedCode(ExpressionGraph* graph) {
         graph->ExpressionForId(e).MakeNop();
         summary.num_expressions_replaced_by_nop++;
       }
-      dep = ExpressionDependencies(*graph);
+      dep.rebuild();
     }
   }
 
@@ -79,18 +79,20 @@ inline OptimizationPassSummary RemoveUnusedCode(ExpressionGraph* graph) {
     if (!found) {
       graph->ExpressionForId(id).MakeNop();
       summary.num_expressions_replaced_by_nop++;
-      dep = ExpressionDependencies(*graph);
+      dep.rebuild();
     }
   }
 
   summary.expression_graph_changed =
       summary.num_expressions_replaced_by_nop > 0;
+  summary.end();
   return summary;
 }
 
 inline OptimizationPassSummary ToPartialSSA(ExpressionGraph* graph) {
   OptimizationPassSummary summary;
   summary.optimization_pass_name = "ToPartialSSA";
+  summary.start();
 
   ExpressionDependencies expr_dep(*graph);
   CFG cfg(*graph);
@@ -135,7 +137,7 @@ inline OptimizationPassSummary ToPartialSSA(ExpressionGraph* graph) {
           }
         }
         summary.num_expressions_modified++;
-        expr_dep = ExpressionDependencies(*graph);
+        expr_dep.rebuild();
       }
       continue;
     }
@@ -143,6 +145,7 @@ inline OptimizationPassSummary ToPartialSSA(ExpressionGraph* graph) {
     //    std::cout << "convert to ssa " << id << std::endl;
   }
   summary.expression_graph_changed = summary.num_expressions_modified > 0;
+  summary.end();
   return summary;
 }
 
@@ -151,6 +154,7 @@ inline OptimizationPassSummary TrivialAssignmentElimination(
   OptimizationPassSummary summary;
   summary.optimization_pass_name = "TrivialAssignmentElimination";
 
+  summary.start();
   ExpressionDependencies deps(*graph);
 
   for (ExpressionId id = graph->Size() - 1; id >= 0; --id) {
@@ -167,6 +171,7 @@ inline OptimizationPassSummary TrivialAssignmentElimination(
         expr.Replace(
             Expression::CreateCompileTimeConstant(target_expr.value()));
         summary.num_expressions_modified++;
+        deps.rebuild();
         continue;
       }
     }
@@ -186,31 +191,20 @@ inline OptimizationPassSummary TrivialAssignmentElimination(
 
       if (other_expr.type() != ExpressionType::ASSIGNMENT) continue;
 
+      if (other_expr.arguments().empty()) continue;
       if (!deps.DataForExpressionId(p).IsSSA()) continue;
 
+      //      CHECK(!other_expr.arguments().empty());
       auto new_target = other_expr.arguments()[0];
       if (!deps.DataForExpressionId(new_target).IsSSA()) continue;
 
       expr.UpdateId(p, new_target);
       summary.num_expressions_modified++;
-      deps = ExpressionDependencies(*graph);
+      deps.rebuild();
     }
   }
   summary.expression_graph_changed = summary.num_expressions_modified > 0;
-  return summary;
-}
-
-inline OptimizationPassSummary CombineConstants(ExpressionGraph* graph) {
-  OptimizationPassSummary summary;
-  summary.optimization_pass_name = "CombineConstants";
-
-  for (ExpressionId id = 0; id < graph->Size(); ++id) {
-    Expression& expr = graph->ExpressionForId(id);
-
-    if (expr.type() == ExpressionType::COMPILE_TIME_CONSTANT) {
-    }
-  }
-  summary.expression_graph_changed = summary.num_expressions_modified > 0;
+  summary.end();
   return summary;
 }
 

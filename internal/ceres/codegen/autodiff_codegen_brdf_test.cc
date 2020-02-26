@@ -1,5 +1,5 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2020 Google Inc. All rights reserved.
+// Copyright 2019 Google Inc. All rights reserved.
 // http://code.google.com/p/ceres-solver/
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,32 +28,40 @@
 //
 // Author: darius.rueckert@fau.de (Darius Rueckert)
 //
-#ifndef CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZATION_PASS_SUMMARY_H_
-#define CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZATION_PASS_SUMMARY_H_
-
-#include <string>
+// This file tests the Expression class. For each member function one test is
+// included here.
+//
+#include "ceres/internal/autodiff.h"
+//
+#include "DisneyBRDF.h"
+#include "ceres/autodiff_cost_function.h"
+#include "ceres/codegen/internal/expression.h"
+#include "common.h"
+#include "compare_cost_functions.h"
+#include "gtest/gtest.h"
 
 namespace ceres {
 namespace internal {
 
-struct OptimizationPassSummary {
-  bool expression_graph_changed = false;
-  std::string optimization_pass_name;
-  int num_expressions_replaced_by_nop = 0;
-  int num_expressions_removed = 0;
-  int num_expressions_inserted = 0;
-  int num_expressions_modified = 0;
-  // Time in seconds
-  double time = 0;
+template <typename FunctorType, int kNumResiduals, int... Ns>
+void test_functor() {
+  FunctorType cost_function_generated;
+  CostFunctionToFunctor<FunctorType> cost_functor;
+  auto* cost_function_ad =
+      new ceres::AutoDiffCostFunction<CostFunctionToFunctor<FunctorType>,
+                                      kNumResiduals,
+                                      Ns...>(&cost_functor);
 
-  void start();
-  void end();
-};
+  // Run N times with random values in the range [-1,1]
+  for (int i = 0; i < 1; ++i) {
+    ceres::internal::compare_cost_functions<kNumResiduals, Ns...>(
+        &cost_function_generated, cost_function_ad, true);
+  }
+}
 
-std::ostream& operator<<(std::ostream& strm,
-                         const OptimizationPassSummary& summary);
+TEST(AutodiffCodeGen, InputOutputAssignment) {
+  test_functor<test::DisneyBRDF, 3, 10>();
+}
 
 }  // namespace internal
 }  // namespace ceres
-
-#endif  // CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZATION_PASS_SUMMARY_H_

@@ -35,9 +35,18 @@ namespace ceres {
 namespace internal {
 
 ExpressionDependencies::ExpressionDependencies(const ExpressionGraph& graph)
-    : data_(graph.Size()), graph_(&graph) {
-  for (ExpressionId id = 0; id < graph.Size(); ++id) {
-    auto& expr = graph.ExpressionForId(id);
+    : data_(graph.Size()), graph_(graph) {
+  rebuild();
+}
+
+void ExpressionDependencies::rebuild() {
+  for (auto& d : data_) {
+    d.used_by.clear();
+    d.written_to.clear();
+  }
+
+  for (ExpressionId id = 0; id < graph_.Size(); ++id) {
+    auto& expr = graph_.ExpressionForId(id);
     auto& data = data_[id];
 
     if (expr.HasValidLhs()) {

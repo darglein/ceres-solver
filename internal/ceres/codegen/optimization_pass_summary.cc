@@ -1,5 +1,5 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2020 Google Inc. All rights reserved.
+// Copyright 2019 Google Inc. All rights reserved.
 // http://code.google.com/p/ceres-solver/
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,33 +27,43 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 // Author: darius.rueckert@fau.de (Darius Rueckert)
-//
-#ifndef CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZATION_PASS_SUMMARY_H_
-#define CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZATION_PASS_SUMMARY_H_
 
-#include <string>
+#include "ceres/codegen/internal/optimization_pass_summary.h"
 
+#include <iostream>
+
+#include "ceres/wall_time.h"
+#include "glog/logging.h"
 namespace ceres {
 namespace internal {
 
-struct OptimizationPassSummary {
-  bool expression_graph_changed = false;
-  std::string optimization_pass_name;
-  int num_expressions_replaced_by_nop = 0;
-  int num_expressions_removed = 0;
-  int num_expressions_inserted = 0;
-  int num_expressions_modified = 0;
-  // Time in seconds
-  double time = 0;
-
-  void start();
-  void end();
-};
-
 std::ostream& operator<<(std::ostream& strm,
-                         const OptimizationPassSummary& summary);
+                         const OptimizationPassSummary& summary) {
+  strm << "[" << summary.optimization_pass_name << "]" << std::endl;
+  strm << "   Changed         : " << summary.expression_graph_changed
+       << std::endl;
+  strm << "   Replaced by NOP : " << summary.num_expressions_replaced_by_nop
+       << std::endl;
+  strm << "   Removed         : " << summary.num_expressions_removed
+       << std::endl;
+  strm << "   Inserted        : " << summary.num_expressions_inserted
+       << std::endl;
+  strm << "   Modified        : " << summary.num_expressions_modified
+       << std::endl;
+  ;
+  strm << "   Time            : " << summary.time;
+  return strm;
+}
+
+void OptimizationPassSummary::start() {
+  std::cout << "start " << optimization_pass_name << std::endl;
+  time = WallTimeInSeconds();
+}
+
+void OptimizationPassSummary::end() {
+  std::cout << "end" << std::endl;
+  time = WallTimeInSeconds() - time;
+}
 
 }  // namespace internal
 }  // namespace ceres
-
-#endif  // CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZATION_PASS_SUMMARY_H_

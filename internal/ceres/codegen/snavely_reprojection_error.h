@@ -62,7 +62,7 @@ struct RotatePoint : public ceres::CodegenCostFunction<3, 3, 3> {
     return true;
   }
 
-#include "tests/rotatepoint.h"
+  //#include "tests/rotatepoint.h"
 };
 
 using RotatePointAD = ceres::internal::CostFunctionToFunctor<RotatePoint>;

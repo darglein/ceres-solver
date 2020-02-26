@@ -28,32 +28,69 @@
 //
 // Author: darius.rueckert@fau.de (Darius Rueckert)
 //
-#ifndef CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZATION_PASS_SUMMARY_H_
-#define CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZATION_PASS_SUMMARY_H_
+#define CERES_CODEGEN
 
-#include <string>
+#include "ceres/codegen/internal/code_generator.h"
+#include "ceres/codegen/internal/constant_optimization.h"
+#include "ceres/codegen/internal/eliminate_nops.h"
+#include "ceres/codegen/internal/expression_graph.h"
+#include "ceres/codegen/internal/expression_ref.h"
+#include "ceres/codegen/internal/optimize_expression_graph.h"
+#include "ceres/codegen/internal/remove_common_subexpressions.h"
+#include "ceres/codegen/internal/remove_unused_code.h"
+#include "ceres/jet.h"
+#include "gtest/gtest.h"
 
 namespace ceres {
 namespace internal {
 
-struct OptimizationPassSummary {
-  bool expression_graph_changed = false;
-  std::string optimization_pass_name;
-  int num_expressions_replaced_by_nop = 0;
-  int num_expressions_removed = 0;
-  int num_expressions_inserted = 0;
-  int num_expressions_modified = 0;
-  // Time in seconds
-  double time = 0;
+using T = ExpressionRef;
 
-  void start();
-  void end();
-};
+static void GenerateAndCheck(const ExpressionGraph& graph) {
+  CodeGenerator::Options generator_options;
+  CodeGenerator gen(graph, generator_options);
+  auto code = gen.Generate();
 
-std::ostream& operator<<(std::ostream& strm,
-                         const OptimizationPassSummary& summary);
+  for (int i = 0; i < code.size(); ++i) {
+    std::cout << code[i] << std::endl;
+  }
+}
+TEST(ToPartialSSA, If) {
+  StartRecordingExpressions();
+  using T = ExpressionRef;
+  {
+    T x0 = MakeInputAssignment<T>(0.0, "input[0]");
+    T x1 = MakeInputAssignment<T>(0.0, "input[1]");
+    T x2 = MakeInputAssignment<T>(0.0, "input[2]");
+    T a = x0 + x1;
+    T b = x0 + x1;
+    T result = a + b;
+
+    MakeOutput(result, "result");
+  }
+  auto graph = StopRecordingExpressions();
+
+  GenerateAndCheck(graph);
+  bool changed = true;
+  while (changed) {
+    changed = false;
+
+    {
+      auto summary = TrivialAssignmentElimination(&graph);
+      changed |= summary.expression_graph_changed;
+    }
+    {
+      auto summary = ConstantFolding(&graph);
+      changed |= summary.expression_graph_changed;
+    }
+    {
+      auto summary = RemoveCommonSubexpressions(&graph);
+      changed |= summary.expression_graph_changed;
+    }
+  }
+
+  GenerateAndCheck(graph);
+}
 
 }  // namespace internal
 }  // namespace ceres
-
-#endif  // CERES_PUBLIC_CODEGEN_INTERNAL_OPTIMIZATION_PASS_SUMMARY_H_

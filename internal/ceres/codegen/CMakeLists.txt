@@ -57,6 +57,7 @@ if (BUILD_TESTING AND GFLAGS)
     ceres_test(cfg)
     ceres_test(eliminate_nops)
     ceres_test(to_partial_ssa)
+    ceres_test(trivial_assignment)
     set(CMAKE_CXX_FLAGS ${CXX_FLAGS_OLD})
   endif()
 
@@ -90,9 +91,10 @@ if (BUILD_TESTING AND GFLAGS)
     )
 
   generate_test_functor(Test autodiff_codegen_test2.h)
-  ceres_test(autodiff_codegen_small
-    Test
-    )
+  ceres_test(autodiff_codegen_small Test)
+
+  generate_test_functor(DisneyBRDF DisneyBRDF.h)
+  ceres_test(autodiff_codegen_brdf DisneyBRDF)
 
   generate_test_functor(Projective gen_autodiff_test_functors.h)
   generate_test_functor(Residual1Param gen_autodiff_test_functors.h)
