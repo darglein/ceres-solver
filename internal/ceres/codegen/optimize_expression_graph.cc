@@ -92,7 +92,7 @@ OptimizeExpressionGraphSummary OptimizeExpressionGraph(
       summary.summaries.push_back(pass_summary);
     }
     {
-      auto pass_summary = ZeroOnePropagation(graph);
+      auto pass_summary = ZeroOnePropagation(graph, true);
       changed |= pass_summary.expression_graph_changed;
       summary.summaries.push_back(pass_summary);
     }

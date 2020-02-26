@@ -374,7 +374,8 @@ if (BUILD_TESTING AND GFLAGS)
   add_library(test_util
               evaluator_test_utils.cc
               numeric_diff_test_utils.cc
-              test_util.cc)
+              test_util.cc
+              codegen/test_utils.cc)
   target_include_directories(test_util PUBLIC ${Ceres_SOURCE_DIR}/internal)
 
   if (MINIGLOG)

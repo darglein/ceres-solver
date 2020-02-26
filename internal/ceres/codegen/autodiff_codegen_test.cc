@@ -34,70 +34,84 @@
 #include "autodiff_codegen_test.h"
 
 #include "ceres/autodiff_cost_function.h"
-#include "ceres/codegen/internal/expression.h"
-#include "ceres/internal/autodiff.h"
-#include "common.h"
-#include "compare_cost_functions.h"
+#include "codegen/test_utils.h"
 #include "gtest/gtest.h"
 
 namespace ceres {
 namespace internal {
 
-template <typename FunctorType, int kNumResiduals, int... Ns>
-void test_functor() {
-  FunctorType cost_function_generated;
-  CostFunctionToFunctor<FunctorType> cost_functor;
-  auto* cost_function_ad =
-      new ceres::AutoDiffCostFunction<CostFunctionToFunctor<FunctorType>,
-                                      kNumResiduals,
-                                      Ns...>(&cost_functor);
-
-  // Run the tests with a few fixed values to check edge-cases
-  std::vector<double> input_values = {
-      0, -1, 1, -10, 10, 1e-5, 1e5,
-      //                                      std::numeric_limits<double>::infinity(),
-      //                                      std::numeric_limits<double>::quiet_NaN()};
-  };
-  for (auto v : input_values) {
-    ceres::internal::compare_cost_functions<kNumResiduals, Ns...>(
-        &cost_function_generated, cost_function_ad, false, v);
+class AutoDiffCodegenTest : public testing::TestWithParam<double> {
+ public:
+  template <typename CostFunctionType, int kNumResiduals, int... Ns>
+  void TestCostFunction() {
+    using CostFunctorType = CostFunctionToFunctor<CostFunctionType>;
+    CostFunctionType generated_cost_function;
+    CostFunctorType cost_functor;
+    auto* cost_function_ad =
+        new AutoDiffCostFunction<CostFunctorType, kNumResiduals, Ns...>(
+            &cost_functor);
+    auto value = GetParam();
+    CompareCostFunctions(&generated_cost_function,
+                         cost_function_ad,
+                         value,
+                         kRelativeErrorThreshold);
   }
+  static constexpr double kRelativeErrorThreshold = 0;
+};
 
-  // Run N times with random values in the range [-1,1]
-  for (int i = 0; i < 100; ++i) {
-    ceres::internal::compare_cost_functions<kNumResiduals, Ns...>(
-        &cost_function_generated, cost_function_ad, true);
-  }
-}  // namespace internal
-
-TEST(AutodiffCodeGen, InputOutputAssignment) {
-  test_functor<test::InputOutputAssignment, 7, 4, 2, 1>();
+TEST_P(AutoDiffCodegenTest, InputOutputAssignment) {
+  TestCostFunction<test::InputOutputAssignment, 7, 4, 2, 1>();
 }
 
-TEST(AutodiffCodeGen, CompileTimeConstants) {
-  test_functor<test::CompileTimeConstants, 7, 1>();
+TEST_P(AutoDiffCodegenTest, CompileTimeConstants) {
+  TestCostFunction<test::CompileTimeConstants, 7, 1>();
 }
 
-TEST(AutodiffCodeGen, Assignments) { test_functor<test::Assignments, 8, 2>(); }
-TEST(AutodiffCodeGen, BinaryArithmetic) {
-  test_functor<test::BinaryArithmetic, 9, 2>();
+TEST_P(AutoDiffCodegenTest, Assignments) {
+  TestCostFunction<test::Assignments, 8, 2>();
 }
-TEST(AutodiffCodeGen, UnaryArithmetic) {
-  test_functor<test::UnaryArithmetic, 3, 1>();
-}
-TEST(AutodiffCodeGen, BinaryComparison) {
-  test_functor<test::BinaryComparison, 12, 2>();
-}
-TEST(AutodiffCodeGen, LogicalOperators) {
-  test_functor<test::LogicalOperators, 8, 3>();
-}
-TEST(AutodiffCodeGen, ScalarFunctions) {
-  test_functor<test::ScalarFunctions, 20, 22>();
-}
-TEST(AutodiffCodeGen, LogicalFunctions) {
-  test_functor<test::LogicalFunctions, 4, 4>();
-}
-TEST(AutodiffCodeGen, Branches) { test_functor<test::Branches, 4, 3>(); }
 
+TEST_P(AutoDiffCodegenTest, BinaryArithmetic) {
+  TestCostFunction<test::BinaryArithmetic, 9, 2>();
+}
+
+TEST_P(AutoDiffCodegenTest, UnaryArithmetic) {
+  TestCostFunction<test::UnaryArithmetic, 3, 1>();
+}
+
+TEST_P(AutoDiffCodegenTest, BinaryComparison) {
+  TestCostFunction<test::BinaryComparison, 12, 2>();
+}
+
+TEST_P(AutoDiffCodegenTest, LogicalOperators) {
+  TestCostFunction<test::LogicalOperators, 8, 3>();
+}
+
+TEST_P(AutoDiffCodegenTest, ScalarFunctions) {
+  TestCostFunction<test::ScalarFunctions, 20, 22>();
+}
+
+TEST_P(AutoDiffCodegenTest, LogicalFunctions) {
+  TestCostFunction<test::LogicalFunctions, 4, 4>();
+}
+
+TEST_P(AutoDiffCodegenTest, Branches) {
+  TestCostFunction<test::Branches, 4, 3>();
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    AutoDiffCodegenTest,
+    AutoDiffCodegenTest,
+    testing::Values(0,
+                    -1,
+                    1,
+                    0.5,
+                    -0.5,
+                    10,
+                    -10,
+                    1e20,
+                    1e-20,
+                    std::numeric_limits<double>::infinity(),
+                    std::numeric_limits<double>::quiet_NaN()));
 }  // namespace internal
 }  // namespace ceres

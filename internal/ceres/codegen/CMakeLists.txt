@@ -27,7 +27,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 # Author: darius.rueckert@fau.de (Darius Rueckert)
-#
+
 if (BUILD_TESTING AND GFLAGS)
   # Testing the AutoDiffCodegen system is more complicated, because function- and
   # constructor calls have side-effects. In C++ the evaluation order and
@@ -50,8 +50,6 @@ if (BUILD_TESTING AND GFLAGS)
     # gcc and different optimization levels. Without this flag, testing would
     # be very painfull and might break when a new compiler version is released.
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-elide-constructors")
-    ceres_test(expression)
-    ceres_test(expression_graph)
     ceres_test(expression_ref)
     ceres_test(code_generator)
     ceres_test(cfg)
@@ -60,6 +58,10 @@ if (BUILD_TESTING AND GFLAGS)
     ceres_test(trivial_assignment)
     set(CMAKE_CXX_FLAGS ${CXX_FLAGS_OLD})
   endif()
+
+
+  ceres_test(expression)
+  ceres_test(expression_graph)
 
   macro (generate_test_functor FUNCTOR_NAME FUNCTOR_FILE)
     ceres_generate_cost_function_implementation_for_functor(
@@ -84,6 +86,7 @@ if (BUILD_TESTING AND GFLAGS)
   generate_test_functor(ScalarFunctions autodiff_codegen_test.h)
   generate_test_functor(LogicalFunctions autodiff_codegen_test.h)
   generate_test_functor(Branches autodiff_codegen_test.h)
+
   ceres_test(autodiff_codegen
     InputOutputAssignment CompileTimeConstants Assignments BinaryArithmetic
     UnaryArithmetic BinaryComparison LogicalOperators ScalarFunctions

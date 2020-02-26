@@ -36,8 +36,8 @@
 #include "ceres/codegen/internal/expression_graph.h"
 #include "ceres/codegen/internal/expression_ref.h"
 #include "ceres/codegen/internal/optimize_expression_graph.h"
+#include "ceres/codegen/internal/remove_common_subexpressions.h"
 #include "ceres/codegen/internal/remove_unused_code.h"
-#include "ceres/codegen/internal/subexpressions.h"
 #include "ceres/jet.h"
 #include "gtest/gtest.h"
 
