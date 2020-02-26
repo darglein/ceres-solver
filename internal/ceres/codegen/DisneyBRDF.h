@@ -36,6 +36,7 @@ struct DisneyBRDF : public ceres::CodegenCostFunction<3, 10> {
 
   template <typename T>
   bool operator()(const T* const params, T* residual) const {
+    using ceres::Ternary;
     T metallic = params[0];
     T subsurface = params[1];
     T specular = params[2];
@@ -120,8 +121,8 @@ struct DisneyBRDF : public ceres::CodegenCostFunction<3, 10> {
     const T ayTemp = sqr(roughness) * aspct;
     //    const T ax = axTemp < eps ? eps : axTemp;
     //    const T ay = ayTemp < eps ? eps : ayTemp;
-    const T ax = ceres::Ternary(axTemp < eps, eps, axTemp);
-    const T ay = ceres::Ternary(ayTemp < eps, eps, ayTemp);
+    const T ax = Ternary(axTemp < eps, eps, axTemp);
+    const T ay = Ternary(ayTemp < eps, eps, ayTemp);
     const T Ds = GTR2_aniso(NdotH, HdotX, HdotY, ax, ay);
     const T FH = schlickFresnel(LdotH);
     const Vec3 Fs = lerp(Cspec0, Vec3(T(1), T(1), T(1)), FH);

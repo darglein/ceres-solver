@@ -30,12 +30,50 @@
 
 #include <memory>
 
+#include "ceres/jet.h"
+//
+
+#include "DisneyBRDF.h"
 #include "benchmark/benchmark.h"
 #include "ceres/ceres.h"
-#include "ceres/jet.h"
 #include "snavely_reprojection_error.h"
 
 namespace ceres {
+
+static void BM_DisneyAutoDiff(benchmark::State& state) {
+  using DisneyAD = ceres::internal::CostFunctionToFunctor<test::DisneyBRDF>;
+
+  double parameter_block1[] = {1., 2., 3., 4., 5., 6., 6., 6., 6., 6.};
+  double* parameters[] = {parameter_block1};
+
+  double jacobian1[3 * 10];
+  double residuals[3];
+  double* jacobians[] = {jacobian1};
+
+  std::unique_ptr<ceres::CostFunction> cost_function(
+      new ceres::AutoDiffCostFunction<DisneyAD, 3, 10>(new DisneyAD));
+
+  while (state.KeepRunning()) {
+    cost_function->Evaluate(
+        parameters, residuals, state.range(0) ? jacobians : nullptr);
+  }
+}
+
+static void BM_DisneyCodeGen(benchmark::State& state) {
+  double parameter_block1[] = {1., 2., 3., 4., 5., 6., 6., 6., 6., 6.};
+  double* parameters[] = {parameter_block1};
+
+  double jacobian1[3 * 10];
+  double residuals[3];
+  double* jacobians[] = {jacobian1};
+
+  std::unique_ptr<ceres::CostFunction> cost_function(new test::DisneyBRDF());
+
+  while (state.KeepRunning()) {
+    cost_function->Evaluate(
+        parameters, residuals, state.range(0) ? jacobians : nullptr);
+  }
+}
 
 static void BM_BAAutoDiff(benchmark::State& state) {
   double parameter_block1[] = {1., 2., 3., 4., 5., 6.};
@@ -81,10 +119,14 @@ static void BM_BACodeGen(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_BAAutoDiff)->ArgName("R")->Arg(0);
-BENCHMARK(BM_BAAutoDiff)->ArgName("R+J")->Arg(1);
-BENCHMARK(BM_BACodeGen)->ArgName("R")->Arg(0);
-BENCHMARK(BM_BACodeGen)->ArgName("R+J")->Arg(1);
+BENCHMARK(BM_DisneyAutoDiff)->ArgName("Residual")->Arg(0);
+BENCHMARK(BM_DisneyAutoDiff)->ArgName("Residual+Jacobian")->Arg(1);
+BENCHMARK(BM_DisneyCodeGen)->ArgName("Residual")->Arg(0);
+BENCHMARK(BM_DisneyCodeGen)->ArgName("Residual+Jacobian")->Arg(1);
+BENCHMARK(BM_BAAutoDiff)->ArgName("Residual")->Arg(0);
+BENCHMARK(BM_BAAutoDiff)->ArgName("Residual+Jacobian")->Arg(1);
+BENCHMARK(BM_BACodeGen)->ArgName("Residual")->Arg(0);
+BENCHMARK(BM_BACodeGen)->ArgName("Residual+Jacobian")->Arg(1);
 
 }  // namespace ceres
 
