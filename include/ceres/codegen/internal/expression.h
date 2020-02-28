@@ -223,6 +223,10 @@ enum class ExpressionType {
   // v_5 = f(v_0,v_1,...)
   FUNCTION_CALL,
 
+  // The boolean return statement from a functor. Can either have a logical
+  // return value or a compile time constant true/false.
+  RETURN,
+
   // Conditional control expressions if/else/endif.
   // These are special expressions, because they don't define a new variable.
   IF,
@@ -302,6 +306,8 @@ class Expression {
       const std::string& name, const std::vector<ExpressionId>& params);
   static Expression CreateLogicalFunctionCall(
       const std::string& name, const std::vector<ExpressionId>& params);
+  static Expression CreateReturn(ExpressionId value);
+  static Expression CreateConstantReturn(bool value);
   static Expression CreateIf(ExpressionId condition);
   static Expression CreateElse();
   static Expression CreateEndIf();
@@ -318,6 +324,8 @@ class Expression {
   // Used during optimization to collapse zero/one arithmetic operations.
   // b = a + 0;      ->    b = a;
   bool IsCompileTimeConstantAndEqualTo(double constant) const;
+
+  bool IsMultiplication(const std::string& v) const;
 
   // Checks if "other" is identical to "this" so that one of the epxressions can
   // be replaced by a trivial assignment. Used during common subexpression

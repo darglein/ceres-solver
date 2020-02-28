@@ -29,12 +29,14 @@
 // Author: darius.rueckert@fau.de (Darius Rueckert)
 //
 #define CERES_CODEGEN
-
+#include "autodiff_codegen_test.h"
+#include "ceres/codegen/generate_code_for_functor.h"
 #include "ceres/codegen/internal/code_generator.h"
 #include "ceres/codegen/internal/constant_optimization.h"
 #include "ceres/codegen/internal/eliminate_nops.h"
 #include "ceres/codegen/internal/expression_graph.h"
 #include "ceres/codegen/internal/expression_ref.h"
+#include "ceres/codegen/internal/merge_constants.h"
 #include "ceres/codegen/internal/optimize_expression_graph.h"
 #include "ceres/codegen/internal/remove_common_subexpressions.h"
 #include "ceres/codegen/internal/remove_unused_code.h"
@@ -78,20 +80,70 @@ TEST(ToPartialSSA, SimpleLinear) {
 }
 #endif
 
-TEST(ToPartialSSA, If) {
+TEST(ToPartialSSA, Flow) {
   StartRecordingExpressions();
-  using T = Jet<ExpressionRef, 2>;
+  using T = ExpressionRef;
   {
-    T x = T(MakeParameter("input"));
-    T a = sin(x);
-    T a2 = sin(x);
+    T c1 = T(1);
+    T c2 = T(2);
 
-    T b = a + a2;
+    T v = T(0);
+    CERES_IF(c1 < c2) { v = T(1); }
+    CERES_ELSE { v = T(1); }
+    CERES_ENDIF;
+    //    T c3 = c1;
+    //        c3 = v;
+    T c3 = v;
+    c3 = v;
+    T c4 = c3;
+
+    auto y = c4;
+    MakeOutput(y, "a");
+  }
+  auto graph = StopRecordingExpressions();
+
+  GenerateAndCheck(graph);
+  OptimizeExpressionGraph(OptimizeExpressionGraphOptions(), &graph);
+  GenerateAndCheck(graph);
+}
+
+TEST(ToPartialSSA, If) {
+  return;
+  //  auto res =
+  //      GenerateCodeForFunctor<test::ScalarFunctions>(AutoDiffCodeGenOptions());
+
+  //  return;
+  StartRecordingExpressions();
+  using T = Jet<ExpressionRef, 1>;
+  //  using T = ExpressionRef;
+  {
+    //    T x = T(MakeParameter("input"));
+    //    T a = sin(x);
+    //    T a2 = sin(x);
+
+    T c1 = T(1);
+    T c2 = T(2);
+    T c3 = T(3);
+    //    T c4 = T(4);
+    //    T c5 = T(5);
+    //    T c6 = T(6);
+
+    T v1 = c3 * c1;
+    T v0 = atan2(v1, c1);
+    T v2 = v1 * v0;
+
+    //    T v3 = c1 * c3;
+    //    T v4 = v3 * c2;
+    //    MakeOutput(v4, "out");
+    //    T b = a + a2;
     //    T b = pow(a, a2);
 
-    MakeOutput(b.a, "a");
-    MakeOutput(b.v[0], "a");
-    MakeOutput(b.v[1], "a");
+    //    T y = v2 + v4;
+    //    MakeOutput(v2, "a");
+    auto y = v2;
+    MakeOutput(y.a, "a");
+    MakeOutput(y.v[0], "a");
+    //    MakeOutput(b.v[1], "a");
   }
   auto graph = StopRecordingExpressions();
 
@@ -99,6 +151,7 @@ TEST(ToPartialSSA, If) {
   bool changed = true;
   while (changed) {
     changed = false;
+#if 1
 
     {
       auto summary = EliminateNops(&graph);
@@ -118,21 +171,43 @@ TEST(ToPartialSSA, If) {
       changed |= summary.expression_graph_changed;
     }
     {
-      auto summary = MoveConstantsToBeginning(&graph);
+      auto summary = MergeConstants(&graph);
       changed |= summary.expression_graph_changed;
     }
     {
-      auto summary = MergeCompileTimeConstants(&graph);
+      auto summary = TrivialAssignmentElimination(&graph);
       changed |= summary.expression_graph_changed;
     }
-    {
-      auto summary = ZeroOnePropagation(&graph);
-      changed |= summary.expression_graph_changed;
-    }
+
+    //    {
+    //      auto summary = ZeroOnePropagation(&graph);
+    //      changed |= summary.expression_graph_changed;
+    //    }
     {
       auto summary = RemoveCommonSubexpressions(&graph);
       changed |= summary.expression_graph_changed;
+      std::cout << summary << std::endl;
     }
+#endif
+    std::cout << std::endl << std::endl << std::endl;
+    GenerateAndCheck(graph);
+    {
+      auto summary = Reorder(&graph, false, "*");
+      changed |= summary.expression_graph_changed;
+      std::cout << summary << std::endl;
+    }
+
+    GenerateAndCheck(graph);
+    {
+      auto summary = MoveToUsage(&graph);
+      changed |= summary.expression_graph_changed;
+      std::cout << summary << std::endl;
+    }
+    GenerateAndCheck(graph);
+    //    {
+    //      auto summary = MoveToUsage(&graph);
+    //      changed |= summary.expression_graph_changed;
+    //    }
   }
 
   GenerateAndCheck(graph);

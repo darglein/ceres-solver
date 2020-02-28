@@ -35,18 +35,21 @@
 
 #include "ceres/codegen/internal/expression.h"
 #include "ceres/codegen/internal/expression_graph.h"
-#include "glog/logging.h"
+
 namespace ceres {
 namespace internal {
 
+// The ExpressionDependencies class precomputes important dependencies between
+// expressions for the entire ExpressionGraph. This is used by various
+// optimization passes.
 class ExpressionDependencies {
  public:
   struct Data {
-    // All other expressions that write to the left hand side of this
+    // All expressions that write to the left hand side of this
     // expression.
     std::vector<ExpressionId> written_to;
 
-    // All other expressions that use the left hand side of this expression as
+    // All expressions that use the left hand side of this expression as
     // an argument.
     std::vector<ExpressionId> used_by;
 
@@ -54,20 +57,18 @@ class ExpressionDependencies {
     // once.
     bool IsSSA() const { return written_to.size() == 1; }
 
+    // If no other expression uses the left hand side as an argument it is
+    // unused.
     bool Unused() const { return used_by.empty(); }
   };
+
   ExpressionDependencies(const ExpressionGraph& graph);
 
-  void rebuild();
+  // Compute all dependencies. Calling this a second time will clear the current
+  // data and recompute them.
+  void Rebuild();
 
-  const Data& DataForExpressionId(ExpressionId id) {
-    CHECK(id != kInvalidExpressionId) << id;
-    CHECK(graph_.ExpressionForId(id).lhs_id() != kInvalidExpressionId)
-        << graph_.ExpressionForId(id).lhs_id() << " " << id;
-    CHECK(graph_.ExpressionForId(id).lhs_id() == id)
-        << graph_.ExpressionForId(id).lhs_id() << " " << id;
-    return data_[id];
-  }
+  const Data& DataForExpressionId(ExpressionId id) const;
 
  private:
   std::vector<Data> data_;

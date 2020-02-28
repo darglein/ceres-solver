@@ -31,11 +31,11 @@
 #ifndef CERES_PUBLIC_CODEGEN_INTERNAL_CODE_GENERATOR_H_
 #define CERES_PUBLIC_CODEGEN_INTERNAL_CODE_GENERATOR_H_
 
-#include "ceres/codegen/internal/expression.h"
-#include "ceres/codegen/internal/expression_graph.h"
-
 #include <string>
 #include <vector>
+
+#include "ceres/codegen/internal/expression.h"
+#include "ceres/codegen/internal/expression_graph.h"
 
 namespace ceres {
 namespace internal {

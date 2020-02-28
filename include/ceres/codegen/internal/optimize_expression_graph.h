@@ -71,6 +71,9 @@ std::ostream& operator<<(std::ostream& strm,
 OptimizeExpressionGraphSummary OptimizeExpressionGraph(
     const OptimizeExpressionGraphOptions& options, ExpressionGraph* graph);
 
+OptimizeExpressionGraphSummary SuperOptimize(
+    const OptimizeExpressionGraphOptions& options, ExpressionGraph* graph);
+
 }  // namespace internal
 }  // namespace ceres
 

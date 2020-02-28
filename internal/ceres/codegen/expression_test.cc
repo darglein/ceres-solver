@@ -32,6 +32,7 @@
 // included here.
 //
 #include "ceres/codegen/internal/expression.h"
+
 #include "gtest/gtest.h"
 
 namespace ceres {
@@ -145,6 +146,30 @@ TEST(Expression, CreateFunctions) {
                  {3},
                  "isfinite",
                  0));
+
+  EXPECT_EQ(Expression::CreateReturn(ExpressionId(5)),
+            Expression(ExpressionType::RETURN,
+                       ExpressionReturnType::VOID,
+                       kInvalidExpressionId,
+                       {5},
+                       "",
+                       0));
+
+  EXPECT_EQ(Expression::CreateConstantReturn(true),
+            Expression(ExpressionType::RETURN,
+                       ExpressionReturnType::VOID,
+                       kInvalidExpressionId,
+                       {},
+                       "",
+                       1));
+
+  EXPECT_EQ(Expression::CreateConstantReturn(false),
+            Expression(ExpressionType::RETURN,
+                       ExpressionReturnType::VOID,
+                       kInvalidExpressionId,
+                       {},
+                       "",
+                       0));
 
   EXPECT_EQ(Expression::CreateIf(ExpressionId(5)),
             Expression(ExpressionType::IF,

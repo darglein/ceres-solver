@@ -50,6 +50,9 @@ struct OptimizationPassSummary {
   void end();
 };
 
+OptimizationPassSummary operator+(const OptimizationPassSummary& a,
+                                  const OptimizationPassSummary& b);
+
 std::ostream& operator<<(std::ostream& strm,
                          const OptimizationPassSummary& summary);
 

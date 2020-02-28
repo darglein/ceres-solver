@@ -206,6 +206,20 @@ std::string CodeGenerator::ExpressionToString(ExpressionId id) {
       result << ");";
       break;
     }
+    case ExpressionType::RETURN: {
+      //
+      // Format:     return <value>;
+      //             return arguments[0];
+      // Example:    v_1   = !v_0;
+      //
+      if (args.empty()) {
+        std::string str_bool = value == 1.0 ? "true" : "false";
+        result << indentation_ << "return " << str_bool << ";";
+      } else {
+        result << indentation_ << "return " << args[0] << ";";
+      }
+      break;
+    }
     case ExpressionType::IF: {
       //
       // Format:     if (<arguments[0]>) {

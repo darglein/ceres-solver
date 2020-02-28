@@ -101,22 +101,25 @@
 // generation.
 #ifndef CERES_CODEGEN
 #define CERES_LOCAL_VARIABLE(type, local_variable) type(local_variable)
-#define CERES_IF(condition_) if (condition_)
+#define CERES_IF(condition) if (condition)
 #define CERES_ELSE else
 #define CERES_ENDIF
-#define CERES_COMMENT(comment_)
+#define CERES_COMMENT(comment)
+#define CERES_RETURN(value) return (value)
 #else
+#include "ceres/codegen/internal/expression_ref.h"
 #define CERES_LOCAL_VARIABLE(_template_type, _local_variable)            \
   ceres::internal::InputAssignment<_template_type>::Get(_local_variable, \
                                                         #_local_variable)
-#define CERES_IF(condition_) \
-  AddExpressionToGraph(ceres::internal::Expression::CreateIf((condition_).id));
+#define CERES_IF(condition) \
+  AddExpressionToGraph(ceres::internal::Expression::CreateIf((condition).id));
 #define CERES_ELSE \
   AddExpressionToGraph(ceres::internal::Expression::CreateElse());
 #define CERES_ENDIF \
   AddExpressionToGraph(ceres::internal::Expression::CreateEndIf());
-#define CERES_COMMENT(comment_) \
-  AddExpressionToGraph(ceres::internal::Expression::CreateComment(comment_))
+#define CERES_COMMENT(comment) \
+  AddExpressionToGraph(ceres::internal::Expression::CreateComment(comment))
+#define CERES_RETURN(value) ceres::internal::MakeReturn(value)
 #endif
 
 namespace ceres {

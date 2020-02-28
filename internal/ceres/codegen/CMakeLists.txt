@@ -54,7 +54,6 @@ if (BUILD_TESTING AND GFLAGS)
     ceres_test(code_generator)
     ceres_test(cfg)
     ceres_test(eliminate_nops)
-    ceres_test(to_partial_ssa)
     ceres_test(trivial_assignment)
     set(CMAKE_CXX_FLAGS ${CXX_FLAGS_OLD})
   endif()
@@ -62,6 +61,8 @@ if (BUILD_TESTING AND GFLAGS)
 
   ceres_test(expression)
   ceres_test(expression_graph)
+  ceres_test(expression_dependencies)
+  ceres_test(merge_constants)
 
   macro (generate_test_functor FUNCTOR_NAME FUNCTOR_FILE)
     ceres_generate_cost_function_implementation_for_functor(
@@ -86,6 +87,10 @@ if (BUILD_TESTING AND GFLAGS)
   generate_test_functor(ScalarFunctions autodiff_codegen_test.h)
   generate_test_functor(LogicalFunctions autodiff_codegen_test.h)
   generate_test_functor(Branches autodiff_codegen_test.h)
+
+
+  ceres_test(to_partial_ssa Branches)
+
 
   ceres_test(autodiff_codegen
     InputOutputAssignment CompileTimeConstants Assignments BinaryArithmetic

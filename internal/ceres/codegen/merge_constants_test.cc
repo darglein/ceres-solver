@@ -28,46 +28,45 @@
 //
 // Author: darius.rueckert@fau.de (Darius Rueckert)
 //
-#include "ceres/codegen/internal/expression_dependencies.h"
+#define CERES_CODEGEN
 
-#include <iostream>
+#include "ceres/codegen/internal/merge_constants.h"
 
-#include "glog/logging.h"
+#include "ceres/codegen/internal/expression_graph.h"
+#include "ceres/codegen/internal/expression_ref.h"
+#include "gtest/gtest.h"
+#include "test_utils.h"
 namespace ceres {
 namespace internal {
 
-ExpressionDependencies::ExpressionDependencies(const ExpressionGraph& graph)
-    : graph_(graph) {
-  Rebuild();
-}
+using T = ExpressionRef;
 
-void ExpressionDependencies::Rebuild() {
-  data_.resize(graph_.Size());
-  for (auto& d : data_) {
-    d.used_by.clear();
-    d.written_to.clear();
+TEST(MergeConstants, ToSSA) {
+  StartRecordingExpressions();
+  {
+    T x1 = T(1);
+    T x2 = T(2);
+    x1 = x2;
+    MakeOutput(x1, "out");
   }
+  auto graph = StopRecordingExpressions();
 
-  for (ExpressionId id = 0; id < graph_.Size(); ++id) {
-    auto& expr = graph_.ExpressionForId(id);
-    auto& data = data_[id];
-
-    if (expr.HasValidLhs()) {
-      data_[expr.lhs_id()].written_to.push_back(id);
-    }
-
-    for (auto arg : expr.arguments()) {
-      data_[arg].used_by.push_back(id);
-    }
+  StartRecordingExpressions();
+  {
+    T x1 = T(1);
+    T x2 = T(2);
+    T tmp = T(1);
+    tmp = x2;
   }
-}
+  auto reference = StopRecordingExpressions();
 
-const ExpressionDependencies::Data& ExpressionDependencies::DataForExpressionId(
-    ExpressionId id) const {
-  CHECK_NE(id, kInvalidExpressionId);
-  CHECK_NE(graph_.ExpressionForId(id).lhs_id(), kInvalidExpressionId);
-  CHECK_EQ(graph_.ExpressionForId(id).lhs_id(), id);
-  return data_[id];
+  PrintGraph(graph);
+  auto summary = MergeConstants(&graph);
+
+  PrintGraph(graph);
+  PrintGraph(reference);
+  //  EXPECT_TRUE(summary.expression_graph_changed);
+  CompareExpressionGraphs(graph, reference);
 }
 
 }  // namespace internal

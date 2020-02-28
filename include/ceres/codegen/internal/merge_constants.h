@@ -28,47 +28,18 @@
 //
 // Author: darius.rueckert@fau.de (Darius Rueckert)
 //
-#include "ceres/codegen/internal/expression_dependencies.h"
+#ifndef CERES_PUBLIC_CODEGEN_INTERNAL_MERGE_CONSTANTS_H_
+#define CERES_PUBLIC_CODEGEN_INTERNAL_MERGE_CONSTANTS_H_
 
-#include <iostream>
 
-#include "glog/logging.h"
+#include "ceres/codegen/internal/expression_graph.h"
+#include "ceres/codegen/internal/optimization_pass_summary.h"
 namespace ceres {
 namespace internal {
 
-ExpressionDependencies::ExpressionDependencies(const ExpressionGraph& graph)
-    : graph_(graph) {
-  Rebuild();
-}
-
-void ExpressionDependencies::Rebuild() {
-  data_.resize(graph_.Size());
-  for (auto& d : data_) {
-    d.used_by.clear();
-    d.written_to.clear();
-  }
-
-  for (ExpressionId id = 0; id < graph_.Size(); ++id) {
-    auto& expr = graph_.ExpressionForId(id);
-    auto& data = data_[id];
-
-    if (expr.HasValidLhs()) {
-      data_[expr.lhs_id()].written_to.push_back(id);
-    }
-
-    for (auto arg : expr.arguments()) {
-      data_[arg].used_by.push_back(id);
-    }
-  }
-}
-
-const ExpressionDependencies::Data& ExpressionDependencies::DataForExpressionId(
-    ExpressionId id) const {
-  CHECK_NE(id, kInvalidExpressionId);
-  CHECK_NE(graph_.ExpressionForId(id).lhs_id(), kInvalidExpressionId);
-  CHECK_EQ(graph_.ExpressionForId(id).lhs_id(), id);
-  return data_[id];
-}
+OptimizationPassSummary MergeConstants(ExpressionGraph* graph);
 
 }  // namespace internal
 }  // namespace ceres
+
+#endif  // CERES_PUBLIC_CODEGEN_INTERNAL_ELIMINATE_NOPS_H_

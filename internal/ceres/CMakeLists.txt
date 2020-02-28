@@ -158,6 +158,7 @@ if(CODE_GENERATION)
       codegen/optimize_expression_graph.cc
       codegen/eliminate_nops.cc
       codegen/remove_common_subexpressions.cc
+      codegen/merge_constants.cc
       codegen/expression_dependencies.cc
       codegen/optimization_pass_summary.cc
   )

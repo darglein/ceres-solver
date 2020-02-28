@@ -84,6 +84,9 @@ class CFG {
 
   std::vector<BlockId> PostOrder(BlockId start = 0);
 
+  std::vector<ExpressionId> possibleValuesOfExpressionAtLocation(
+      ExpressionGraph& graph, ExpressionId location, ExpressionId id);
+
  private:
   std::vector<BlockId> doms_;
   std::vector<BasicBlock> blocks_;

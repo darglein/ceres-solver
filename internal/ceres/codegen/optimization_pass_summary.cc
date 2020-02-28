@@ -56,13 +56,26 @@ std::ostream& operator<<(std::ostream& strm,
 }
 
 void OptimizationPassSummary::start() {
-  std::cout << "start " << optimization_pass_name << std::endl;
+  //  std::cout << "start " << optimization_pass_name << std::endl;
   time = WallTimeInSeconds();
 }
 
 void OptimizationPassSummary::end() {
-  std::cout << "end" << std::endl;
+  //  std::cout << "end" << std::endl;
   time = WallTimeInSeconds() - time;
+}
+
+OptimizationPassSummary operator+(const OptimizationPassSummary& a,
+                                  const OptimizationPassSummary& b) {
+  OptimizationPassSummary result = a;
+  result.optimization_pass_name = "Sum";
+  result.expression_graph_changed |= b.expression_graph_changed;
+  result.num_expressions_replaced_by_nop += b.expression_graph_changed;
+  result.num_expressions_removed += b.expression_graph_changed;
+  result.num_expressions_inserted += b.expression_graph_changed;
+  result.num_expressions_modified += b.expression_graph_changed;
+  result.time += b.time;
+  return result;
 }
 
 }  // namespace internal

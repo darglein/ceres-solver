@@ -149,6 +149,23 @@ Expression Expression::CreateLogicalFunctionCall(
                     name);
 }
 
+Expression Expression::CreateReturn(ExpressionId value) {
+  return Expression(ExpressionType::RETURN,
+                    ExpressionReturnType::VOID,
+                    kInvalidExpressionId,
+                    {value});
+}
+
+Expression Expression::CreateConstantReturn(bool value) {
+  double dvalue = value ? 1.0 : 0.0;
+  return Expression(ExpressionType::RETURN,
+                    ExpressionReturnType::VOID,
+                    kInvalidExpressionId,
+                    {},
+                    "",
+                    dvalue);
+}
+
 Expression Expression::CreateIf(ExpressionId condition) {
   return Expression(ExpressionType::IF,
                     ExpressionReturnType::VOID,
@@ -177,7 +194,7 @@ bool Expression::IsArithmeticExpression() const {
 bool Expression::IsControlExpression() const {
   return type_ == ExpressionType::IF || type_ == ExpressionType::ELSE ||
          type_ == ExpressionType::ENDIF || type_ == ExpressionType::NOP ||
-         type_ == ExpressionType::COMMENT;
+         type_ == ExpressionType::COMMENT || type_ == ExpressionType::RETURN;
 }
 
 bool Expression::IsReplaceableBy(const Expression& other) const {
@@ -204,6 +221,10 @@ bool Expression::DirectlyDependsOn(ExpressionId other) const {
 
 bool Expression::IsCompileTimeConstantAndEqualTo(double constant) const {
   return type_ == ExpressionType::COMPILE_TIME_CONSTANT && value_ == constant;
+}
+
+bool Expression::IsMultiplication(const std::string& v) const {
+  return type_ == ExpressionType::BINARY_ARITHMETIC && name_ == v;
 }
 
 void Expression::MakeNop() {

@@ -331,6 +331,26 @@ TEST(ExpressionRef, LOGICAL_FUNCTION_CALL) {
   EXPECT_EQ(reference, graph);
 }
 
+TEST(ExpressionRef, RETURN) {
+  StartRecordingExpressions();
+  T a = T(1);
+  T b = T(2);
+  auto c = a < b;
+  CERES_RETURN(c);
+  CERES_RETURN(true);
+  CERES_RETURN(false);
+  auto graph = StopRecordingExpressions();
+
+  ExpressionGraph reference;
+  reference.InsertBack(Expression::CreateCompileTimeConstant(1));
+  reference.InsertBack(Expression::CreateCompileTimeConstant(2));
+  reference.InsertBack(Expression::CreateBinaryCompare("<", 0, 1));
+  reference.InsertBack(Expression::CreateReturn(2));
+  reference.InsertBack(Expression::CreateConstantReturn(true));
+  reference.InsertBack(Expression::CreateConstantReturn(false));
+  EXPECT_EQ(reference, graph);
+}
+
 TEST(ExpressionRef, IF) {
   StartRecordingExpressions();
   T a = T(1);

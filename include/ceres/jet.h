@@ -382,12 +382,20 @@ template <typename T, int N>
 inline Jet<T, N> Ternary(typename ComparisonReturnType<T>::type c,
                          const Jet<T, N>& f,
                          const Jet<T, N>& g) {
+#if 1
   Jet<T, N> r;
   r.a = Ternary(c, f.a, g.a);
   for (int i = 0; i < N; ++i) {
     r.v[i] = Ternary(c, f.v[i], g.v[i]);
   }
   return r;
+#else
+  Jet<T, N> r;
+  CERES_IF(c) { r = f; }
+  CERES_ELSE { r = g; }
+  CERES_ENDIF;
+  return r;
+#endif
 }
 
 // Pull some functions from namespace std.

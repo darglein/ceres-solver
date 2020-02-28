@@ -34,6 +34,7 @@
 #include "ceres/internal/autodiff.h"
 //
 #include "DisneyBRDF.h"
+#include "DisneyBRDFAnalytic.h"
 #include "ceres/autodiff_cost_function.h"
 #include "ceres/codegen/internal/expression.h"
 #include "common.h"
@@ -52,10 +53,15 @@ void test_functor() {
                                       kNumResiduals,
                                       Ns...>(&cost_functor);
 
+  auto* cost_function_analytic = new test::DisneyBRDFAnalytic;
+
   // Run N times with random values in the range [-1,1]
   for (int i = 0; i < 1; ++i) {
     ceres::internal::compare_cost_functions<kNumResiduals, Ns...>(
-        &cost_function_generated, cost_function_ad, true);
+        //        &cost_function_generated, cost_function_ad, true);
+        cost_function_analytic,
+        cost_function_ad,
+        true);
   }
 }
 

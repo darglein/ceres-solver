@@ -31,11 +31,11 @@
 #ifndef CERES_INTERNAL_CODEGEN_TEST_UTILS_H_
 #define CERES_INTERNAL_CODEGEN_TEST_UTILS_H_
 
+#include "ceres/codegen/internal/expression_graph.h"
 #include "ceres/internal/autodiff.h"
 #include "ceres/random.h"
 #include "ceres/sized_cost_function.h"
 #include "test_util.h"
-
 namespace ceres {
 namespace internal {
 
@@ -76,6 +76,11 @@ void CompareCostFunctions(CostFunction* cost_function1,
                           CostFunction* cost_function2,
                           double value,
                           double tol);
+
+void CompareExpressionGraphs(const ExpressionGraph& graph1,
+                             const ExpressionGraph& graph2);
+
+void PrintGraph(const ExpressionGraph& graph);
 
 }  // namespace internal
 }  // namespace ceres

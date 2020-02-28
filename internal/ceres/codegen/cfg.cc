@@ -241,6 +241,59 @@ std::vector<BlockId> CFG::PostOrder(BlockId start) {
   return result;
 }
 
+std::vector<ExpressionId> CFG::possibleValuesOfExpressionAtLocation(
+    ExpressionGraph& graph, ExpressionId location, ExpressionId id) {
+  std::vector<ExpressionId> result;
+
+  std::vector<bool> blocks_visited(Size(), false);
+
+  // traverse backwards in depth first search
+  auto current_block = BlockIdForExpressionId(location);
+  std::vector<std::pair<BlockId, ExpressionId>> stack;
+  stack.emplace_back(current_block, location - 1);
+
+  while (!stack.empty()) {
+    auto block_loc = stack.back();
+    stack.pop_back();
+
+    if (blocks_visited[block_loc.first]) {
+      continue;
+    }
+    blocks_visited[block_loc.first] = true;
+
+    auto block = NodeForId(block_loc.first);
+    if (block_loc.second == kInvalidExpressionId) {
+      block_loc.second = block.end - 1;
+    }
+
+    bool found = false;
+    // go to start of block if we find something stop searching
+    for (auto other_id = block_loc.second; other_id >= block.start;
+         --other_id) {
+      auto& expr = graph.ExpressionForId(other_id);
+      if (expr.lhs_id() == id) {
+        // found an assignment.
+        // stop here and add to output
+        result.push_back(other_id);
+        found = true;
+        break;
+      }
+    }
+
+    if (found) {
+      continue;
+    }
+
+    // didn't find anyhting.
+    // add all prev blocks to stack
+    for (auto inc : block.incoming_edges) {
+      stack.emplace_back(inc, kInvalidExpressionId);
+    }
+  }
+
+  return result;
+}
+
 void CFG::PostOrder(BlockId block,
                     std::vector<BlockId>* result,
                     std::vector<bool>* visisted) {

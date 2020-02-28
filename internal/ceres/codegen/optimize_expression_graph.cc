@@ -32,6 +32,7 @@
 
 #include "ceres/codegen/internal/constant_optimization.h"
 #include "ceres/codegen/internal/eliminate_nops.h"
+#include "ceres/codegen/internal/merge_constants.h"
 #include "ceres/codegen/internal/remove_common_subexpressions.h"
 #include "ceres/codegen/internal/remove_unused_code.h"
 #include "glog/logging.h"
@@ -55,7 +56,11 @@ OptimizeExpressionGraphSummary OptimizeExpressionGraph(
   while (summary.num_iterations < options.max_num_iterations) {
     summary.num_iterations++;
     bool changed = false;
-
+    {
+      auto pass_summary = MergeConstants(graph);
+      changed |= pass_summary.expression_graph_changed;
+      summary.summaries.push_back(pass_summary);
+    }
     if (options.eliminate_nops) {
       auto pass_summary = EliminateNops(graph);
       changed |= pass_summary.expression_graph_changed;
@@ -79,30 +84,33 @@ OptimizeExpressionGraphSummary OptimizeExpressionGraph(
       changed |= pass_summary.expression_graph_changed;
       summary.summaries.push_back(pass_summary);
     }
-
-    {
-      auto pass_summary = MoveConstantsToBeginning(graph);
-      changed |= pass_summary.expression_graph_changed;
-      summary.summaries.push_back(pass_summary);
-    }
-
-    {
-      auto pass_summary = MergeCompileTimeConstants(graph);
-      changed |= pass_summary.expression_graph_changed;
-      summary.summaries.push_back(pass_summary);
-    }
-    {
-      auto pass_summary = ZeroOnePropagation(graph, true);
-      changed |= pass_summary.expression_graph_changed;
-      summary.summaries.push_back(pass_summary);
-    }
     {
       auto pass_summary = ConstantFolding(graph);
       changed |= pass_summary.expression_graph_changed;
       summary.summaries.push_back(pass_summary);
     }
+
+    {
+      auto pass_summary = ForwardFlow(graph);
+      changed |= pass_summary.expression_graph_changed;
+      summary.summaries.push_back(pass_summary);
+    }
+#if 1
+
+    {
+      auto pass_summary = ZeroOnePropagation(graph, false);
+      changed |= pass_summary.expression_graph_changed;
+      summary.summaries.push_back(pass_summary);
+    }
+
     if (options.eliminate_nops) {
       auto pass_summary = EliminateNops(graph);
+      changed |= pass_summary.expression_graph_changed;
+      summary.summaries.push_back(pass_summary);
+    }
+
+    {
+      auto pass_summary = SortArguments(graph);
       changed |= pass_summary.expression_graph_changed;
       summary.summaries.push_back(pass_summary);
     }
@@ -113,13 +121,31 @@ OptimizeExpressionGraphSummary OptimizeExpressionGraph(
       changed |= pass_summary.expression_graph_changed;
       summary.summaries.push_back(pass_summary);
     }
+#endif
+
 #if 0
 #endif
     if (!changed) {
       break;
     }
   }
+
   return summary;
+}
+
+OptimizeExpressionGraphSummary SuperOptimize(
+    const OptimizeExpressionGraphOptions& options, ExpressionGraph* graph) {
+  //  return OptimizeExpressionGraph(options, graph);
+  auto a1 = OptimizeExpressionGraph(options, graph);
+  Reorder(graph, true, "*");
+  Reorder(graph, true, "+");
+  MoveToUsage(graph);
+  auto a2 = OptimizeExpressionGraph(options, graph);
+  Reorder(graph, false, "*");
+  Reorder(graph, false, "+");
+  MoveToUsage(graph);
+  auto a3 = OptimizeExpressionGraph(options, graph);
+  return a3;
 }
 
 }  // namespace internal

@@ -32,6 +32,8 @@
 
 #include <unordered_map>
 
+#include "glog/logging.h"
+
 namespace ceres {
 namespace internal {
 
@@ -99,7 +101,7 @@ OptimizationPassSummary RemoveCommonSubexpressions(ExpressionGraph* graph) {
         other_expr.Replace(
             Expression::CreateAssignment(kInvalidExpressionId, id));
         summary.num_expressions_modified++;
-        dep.rebuild();
+        dep.Rebuild();
       }
     }
   }

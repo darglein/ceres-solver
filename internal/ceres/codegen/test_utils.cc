@@ -30,6 +30,8 @@
 
 #include "codegen/test_utils.h"
 
+#include "ceres/codegen/internal/code_generator.h"
+
 namespace ceres {
 namespace internal {
 
@@ -81,6 +83,37 @@ void CompareCostFunctions(CostFunction* cost_function1,
                     residuals_and_jacobians_1.second.data(),
                     residuals_and_jacobians_2.second.data(),
                     tol);
+}
+
+void CompareExpressionGraphs(const ExpressionGraph& graph1,
+                             const ExpressionGraph& graph2) {
+  EXPECT_EQ(graph1.Size(), graph2.Size());
+
+  if (graph1.Size() != graph2.Size()) {
+    return;
+  }
+
+  for (ExpressionId id = 0; id < graph1.Size(); ++id) {
+    auto& expr1 = graph1.ExpressionForId(id);
+    auto& expr2 = graph2.ExpressionForId(id);
+    EXPECT_EQ(expr1.type(), expr2.type());
+    EXPECT_EQ(expr1.return_type(), expr2.return_type());
+    EXPECT_EQ(expr1.lhs_id(), expr2.lhs_id());
+    EXPECT_EQ(expr1.name(), expr2.name());
+    EXPECT_EQ(expr1.arguments(), expr2.arguments());
+    EXPECT_EQ(expr1.value(), expr2.value());
+  }
+}
+
+void PrintGraph(const ExpressionGraph& graph) {
+  CodeGenerator::Options options;
+  CodeGenerator gen(graph, options);
+
+  auto result = gen.Generate();
+
+  for (auto str : result) {
+    std::cout << str << std::endl;
+  }
 }
 
 }  // namespace internal

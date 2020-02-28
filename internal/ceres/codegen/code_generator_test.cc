@@ -413,6 +413,31 @@ TEST(CodeGenerator, LOGICAL_FUNCTION_CALL) {
   GenerateAndCheck(graph, expected_code);
 }
 
+TEST(ExpressionRef, RETURN) {
+  StartRecordingExpressions();
+  T a = T(1);
+  T b = T(2);
+  auto c = a < b;
+  CERES_RETURN(c);
+  CERES_RETURN(true);
+  CERES_RETURN(false);
+  auto graph = StopRecordingExpressions();
+
+  std::vector<std::string> expected_code = {"{",
+                                            "  double v_0;",
+                                            "  double v_1;",
+                                            "  bool v_2;",
+                                            "  v_0 = 1;",
+                                            "  v_1 = 2;",
+                                            "  v_2 = v_0 < v_1;",
+                                            "  return v_2;",
+                                            "  return true;",
+                                            "  return false;",
+                                            "}"};
+  GenerateAndCheck(graph, expected_code);
+  exit(0);
+}
+
 TEST(CodeGenerator, IF_SIMPLE) {
   StartRecordingExpressions();
   T a = T(0);
