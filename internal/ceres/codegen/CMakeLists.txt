@@ -94,6 +94,7 @@ if (BUILD_TESTING AND GFLAGS)
 
 
   ceres_test(to_partial_ssa Branches)
+  ceres_test(reorder)
 
 
   ceres_test(autodiff_codegen
@@ -117,7 +118,7 @@ if (BUILD_TESTING AND GFLAGS)
 
   generate_test_functor(RotatePoint snavely_reprojection_error.h)
   generate_test_functor(SnavelyReprojectionErrorGen snavely_reprojection_error.h)
-  ceres_test(gen_reprojection_error RotatePoint SnavelyReprojectionErrorGen)
+  ceres_test(gen_reprojection_error RotatePoint)
 endif()
 
 if (BUILD_BENCHMARKS)

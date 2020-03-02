@@ -88,6 +88,50 @@ TEST(CFG, Blocks) {
   checkCFG(CFG(graph), reference_nodes);
 }
 
+void EvaluateResidualAndJacobian(double const* const* parameters,
+                                 double* residuals,
+                                 double** jacobians) const {
+  double v_0;
+  double v_1;
+  double v_2;
+  double v_3;
+  double v_4;
+  double v_5;
+  double v_6;
+  double v_7;
+  double v_8;
+  double v_9;
+  double v_10;
+  double v_11;
+  double v_12;
+  double v_13;
+  double v_14;
+  double v_15;
+  double v_16;
+  double v_17;
+  double v_18;
+  double v_19;
+  v_0 = 937;
+  v_1 = 19356;
+  v_2 = 194;
+  v_3 = 181778;
+  v_4 = 3755064;
+  v_5 = parameters[0][0];
+  v_6 = v_2 * v_5;
+  v_7 = v_1 * v_6;
+  v_8 = v_0 * v_6;
+  v_9 = v_5 * v_7;
+  v_10 = v_4 * v_5;
+  v_11 = v_7 + v_10;
+  v_12 = v_6 * v_8;
+  v_13 = v_2 * v_8;
+  v_14 = v_3 * v_6;
+  v_15 = v_13 + v_14;
+  v_16 = v_9 + v_12;
+  v_17 = v_11 + v_15;
+  residuals[0] = v_16;
+  jacobians[0][0] = v_17;  // 11 + 15 == 7 + 10 + 13 + 14
+}
 TEST(CFG, If) {
   // CFG
   //

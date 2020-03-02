@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
 // Copyright 2020 Google Inc. All rights reserved.
-// http://ceres-solver.org/
+// http://code.google.com/p/ceres-solver/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -28,12 +28,54 @@
 //
 // Author: darius.rueckert@fau.de (Darius Rueckert)
 //
-#ifndef CERES_INTERNAL_CERES_CODEGEN_COMMON_H_
-#define CERES_INTERNAL_CERES_CODEGEN_COMMON_H_
-
-#include "ceres/codegen/codegen_cost_function.h"
+#define CERES_CODEGEN
+#include "ceres/codegen/generate_code_for_functor.h"
+#include "ceres/codegen/internal/code_generator.h"
+#include "ceres/codegen/internal/constant_optimization.h"
+#include "ceres/codegen/internal/eliminate_nops.h"
+#include "ceres/codegen/internal/expression_graph.h"
+#include "ceres/codegen/internal/expression_ref.h"
+#include "ceres/codegen/internal/merge_constants.h"
+#include "ceres/codegen/internal/optimize_expression_graph.h"
+#include "ceres/codegen/internal/remove_common_subexpressions.h"
+#include "ceres/codegen/internal/remove_unused_code.h"
+#include "ceres/jet.h"
+#include "gtest/gtest.h"
 
 namespace ceres {
-namespace internal {}
+namespace internal {
+
+using T = ExpressionRef;
+
+static void GenerateAndCheck(const ExpressionGraph& graph) {
+  CodeGenerator::Options generator_options;
+  CodeGenerator gen(graph, generator_options);
+  auto code = gen.Generate();
+
+  for (int i = 0; i < code.size(); ++i) {
+    std::cout << code[i] << std::endl;
+  }
+}
+
+TEST(Reorder, Flow) {
+  StartRecordingExpressions();
+  using T = ExpressionRef;
+  {
+    const int inputs = 5;
+    T x[inputs];
+    for (int i = 0; i < inputs; ++i) {
+      x[i] = T(i);
+    }
+
+    T y = ((x[0] + x[1]) + x[4]) * (x[2] + x[3]);
+    //    MakeOutput(y, "o");
+  }
+  auto graph = StopRecordingExpressions();
+
+  GenerateAndCheck(graph);
+  Reorder(&graph, false, "+");
+  GenerateAndCheck(graph);
+}
+
+}  // namespace internal
 }  // namespace ceres
-#endif  // CERES_INTERNAL_CERES_CODEGEN_COMMON_H_

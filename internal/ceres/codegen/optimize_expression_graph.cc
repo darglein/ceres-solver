@@ -136,16 +136,25 @@ OptimizeExpressionGraphSummary OptimizeExpressionGraph(
 OptimizeExpressionGraphSummary SuperOptimize(
     const OptimizeExpressionGraphOptions& options, ExpressionGraph* graph) {
   //  return OptimizeExpressionGraph(options, graph);
+  CHECK(CheckForwardArguments(graph));
   auto a1 = OptimizeExpressionGraph(options, graph);
+  CHECK(CheckForwardArguments(graph));
   Reorder(graph, true, "*");
-  Reorder(graph, true, "+");
-  MoveToUsage(graph);
-  auto a2 = OptimizeExpressionGraph(options, graph);
-  Reorder(graph, false, "*");
-  Reorder(graph, false, "+");
-  MoveToUsage(graph);
-  auto a3 = OptimizeExpressionGraph(options, graph);
-  return a2;
+  //  Reorder(graph, true, "+");
+  //  MoveToUsage(graph);
+  //  auto a2 = OptimizeExpressionGraph(options, graph);
+  //  Reorder(graph, false, "*");
+  //  Reorder(graph, false, "+");
+  //  MoveToUsage(graph);
+
+  {
+    //    MergeConstants(graph);
+    //    EliminateNops(graph);
+  }
+  //  CheckForwardArguments(graph);
+  //  CHECK(CheckForwardArguments(graph));
+  //  auto a3 = OptimizeExpressionGraph(options, graph);
+  return OptimizeExpressionGraphSummary();
 }
 
 }  // namespace internal

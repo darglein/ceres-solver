@@ -370,8 +370,9 @@ inline OrderingResult MakeLinearOrder(ExpressionGraph& graph,
   }
 
   if (!deps.DataForExpressionId(id).IsSSA() ||
-      deps.DataForExpressionId(id).used_by.size() != 1) {
+      deps.DataForExpressionId(id).used_by.size() > 1) {
     // Use non-SSA and multi-used expressions as leafs
+    //    std::cout << "non ssa " << id << std::endl;
     return {true, true, {id}, {}};
   }
 
@@ -489,6 +490,20 @@ inline OptimizationPassSummary SortArguments(ExpressionGraph* graph) {
   return summary;
 }
 
+inline bool CheckForwardArguments(ExpressionGraph* graph) {
+  for (ExpressionId id = 0; id < graph->Size(); ++id) {
+    Expression& expr = graph->ExpressionForId(id);
+    for (auto a : expr.arguments()) {
+      if (a >= id) {
+        std::cout << "invalid forward arg " << id << " " << (int)expr.type()
+                  << std::endl;
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 inline OptimizationPassSummary Reorder(ExpressionGraph* graph,
                                        bool forward,
                                        const std::string& v) {
@@ -500,7 +515,7 @@ inline OptimizationPassSummary Reorder(ExpressionGraph* graph,
 
   ExpressionDependencies deps(*graph);
   for (ExpressionId id = 0; id < graph->Size(); ++id) {
-    //    std::cout << "linearize " << id << std::endl;
+    std::cout << "linearize " << id << std::endl;
     MakeLinearOrder(*graph, deps, id, forward, v);
   }
 
@@ -516,6 +531,10 @@ inline OptimizationPassSummary MoveToUsage(ExpressionGraph* graph) {
   ExpressionDependencies deps(*graph);
   for (ExpressionId id = 0; id < graph->Size(); ++id) {
     Expression& expr = graph->ExpressionForId(id);
+
+    if (expr.type() == ExpressionType::COMPILE_TIME_CONSTANT) {
+      //      continue;
+    }
 
     //    std::cout << "move to " << expr.HasValidLhs() << std::endl;
 
@@ -535,6 +554,7 @@ inline OptimizationPassSummary MoveToUsage(ExpressionGraph* graph) {
 
     auto used_id = dep.used_by.front();
 
+#if 1
     //    std::cout << "move to " << id << " " << used_id << std::endl;
     if (id < used_id) {
       // check if all expressions in between are args from used
@@ -555,11 +575,12 @@ inline OptimizationPassSummary MoveToUsage(ExpressionGraph* graph) {
     } else {
       //      std::cout << "bla" << std::endl;
     }
+#endif
 
     auto expr_cpy = expr;
     expr.MakeNop();
 
-    expr_cpy.set_lhs_id(used_id);
+    expr_cpy.set_lhs_id(kInvalidExpressionId);
     graph->Insert(used_id, expr_cpy);
 
     auto& used_expr = graph->ExpressionForId(used_id + 1);

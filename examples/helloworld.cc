@@ -42,44 +42,17 @@ using ceres::Problem;
 using ceres::Solve;
 using ceres::Solver;
 
-// This file is generated with ceres::GenerateCodeForFunctor.
-// http://ceres-solver.org/
-
-void EvaluateResidual(double const* const* parameters,
-                      double* residuals) const {
-  double v_0;
-  double v_1;
-  double v_2;
-  double v_3;
-  double v_4;
-  double v_5;
-  double v_6;
-  double v_7;
-  double v_8;
-  double v_9;
-  double v_10;
-  double v_11;
-  double v_12;
-  double v_13;
-  double v_14;
-  double v_15;
-  v_0 = 1;
-  v_1 = 0;
-  v_2 = parameters[0][0];
-  v_3 = parameters[0][1];
-  v_4 = parameters[0][2];
-  v_5 = v_4 * v_4;
-  v_6 = v_3 * v_3;
-  v_7 = v_2 * v_2;
-  v_8 = v_6 + v_7;
-  v_9 = v_5 + v_8;
-  v_10 = std::sqrt(v_9);
-  v_11 = v_0 / v_10;
-  v_12 = v_3 * v_11;
-  residuals[0] = v_12;
-  residuals[1] = v_1;
-  residuals[2] = v_1;
-}
+// A templated cost functor that implements the residual r = 10 -
+// x. The method operator() is templated so that we can then use an
+// automatic differentiation wrapper around it to generate its
+// derivatives.
+struct CostFunctor {
+  template <typename T>
+  bool operator()(const T* const x, T* residual) const {
+    residual[0] = 10.0 - x[0];
+    return true;
+  }
+};
 
 void EvaluateResidualAndJacobian(double const* const* parameters,
                                  double* residuals,
@@ -104,127 +77,27 @@ void EvaluateResidualAndJacobian(double const* const* parameters,
   double v_17;
   double v_18;
   double v_19;
-  double v_20;
-  double v_21;
-  double v_22;
-  double v_23;
-  double v_24;
-  double v_25;
-  double v_26;
-  double v_27;
-  double v_28;
-  double v_29;
-  double v_30;
-  double v_31;
-  double v_32;
-  double v_33;
-  double v_34;
-  double v_35;
-  double v_36;
-  double v_37;
-  double v_38;
-  double v_39;
-  double v_40;
-  double v_41;
-  double v_42;
-  double v_43;
-  double v_44;
-  double v_45;
-  double v_46;
-  double v_47;
-  double v_48;
-  double v_49;
-  double v_50;
-  double v_51;
-  double v_52;
-  double v_53;
-  double v_54;
-  double v_55;
-  v_0 = 0;
-  v_1 = 1;
-  v_2 = 2;
-  v_3 = parameters[0][0];
-  v_4 = parameters[0][1];
-  v_5 = parameters[0][2];
-  v_6 = v_5 * v_5;
-  v_7 = v_5 + v_5;
-  v_8 = v_4 * v_4;
-  v_9 = v_4 + v_4;
-  v_10 = v_3 * v_3;
-  v_11 = v_3 + v_3;
-  v_12 = v_8 + v_10;
-  v_13 = v_6 + v_12;
-  v_14 = std::sqrt(v_13);
-  v_15 = v_2 * v_14;
-  v_16 = v_1 / v_15;
-  v_17 = v_20 * v_16;
-  v_18 = v_20 * v_16;
-  v_19 = v_20 * v_16;
-  v_20 = v_1 / v_14;
-  v_21 = v_17 * v_11;
-  v_22 = -v_21;
-  v_23 = v_22 * v_20;
-  v_24 = v_18 * v_9;
-  v_25 = -v_24;
-  v_26 = v_25 * v_20;
-  v_27 = v_19 * v_7;
-  v_28 = -v_27;
-  v_29 = v_28 * v_20;
-  v_30 = v_4 * v_20;
-  v_31 = v_23 * v_4;
-  v_32 = v_26 * v_4;
-  v_33 = v_20 + v_32;
-  v_34 = v_29 * v_4;
-  residuals[0] = v_30;
-  residuals[1] = v_0;
-  residuals[2] = v_0;
-  jacobians[0][0] = v_31;
-  jacobians[0][1] = v_33;
-  jacobians[0][2] = v_34;
-  jacobians[0][3] = v_0;
-  jacobians[0][4] = v_0;
-  jacobians[0][5] = v_0;
-  jacobians[0][6] = v_0;
-  jacobians[0][7] = v_0;
-  jacobians[0][8] = v_0;
-  jacobians[1][0] = v_0;
-  jacobians[1][1] = v_0;
-  jacobians[1][2] = v_0;
-  jacobians[1][3] = v_0;
-  jacobians[1][4] = v_0;
-  jacobians[1][5] = v_0;
-  jacobians[1][6] = v_0;
-  jacobians[1][7] = v_0;
-  jacobians[1][8] = v_0;
+  v_0 = 937;
+  v_1 = 19356;
+  v_2 = 194;
+  v_3 = 181778;
+  v_4 = 3755064;
+  v_5 = parameters[0][0];
+  v_6 = v_2 * v_5;
+  v_7 = v_1 * v_6;
+  v_8 = v_0 * v_6;
+  v_9 = v_5 * v_7;
+  v_10 = v_4 * v_5;
+  v_11 = v_14 + v_13;
+  v_12 = v_6 * v_8;
+  v_13 = v_2 * v_8;
+  v_14 = v_3 * v_6;
+  v_15 = v_11 + v_10;
+  v_16 = v_9 + v_12;
+  v_17 = v_15 + v_7;
+  residuals[0] = v_16;     // v_9 + v_12
+  jacobians[0][0] = v_17;  // 15 + 7 ==  14 + 13 + 10 + 7
 }
-
-bool Evaluate(double const* const* parameters,
-              double* residuals,
-              double** jacobians) const {
-  if (!jacobians) {
-    EvaluateResidual(parameters, residuals);
-    return true;
-  }
-  double jacobians_data[18];
-  double* jacobians_ptrs[] = {
-      jacobians[0] ? jacobians[0] : jacobians_data,
-      jacobians[1] ? jacobians[1] : jacobians_data,
-  };
-  EvaluateResidualAndJacobian(parameters, residuals, jacobians_ptrs);
-  return true;
-}
-
-// A templated cost functor that implements the residual r = 10 -
-// x. The method operator() is templated so that we can then use an
-// automatic differentiation wrapper around it to generate its
-// derivatives.
-struct CostFunctor {
-  template <typename T>
-  bool operator()(const T* const x, T* residual) const {
-    residual[0] = 10.0 - x[0];
-    return true;
-  }
-};
 
 int main(int argc, char** argv) {
   google::InitGoogleLogging(argv[0]);

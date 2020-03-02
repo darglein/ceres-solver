@@ -48,40 +48,67 @@
 namespace test {
 
 template <typename T>
-inline void AngleAxisRotatePoint2(const T angle_axis[3],
-                                  const T pt[3],
-                                  T result[3]) {
-  result[0] = T(0);
-  result[1] = T(0);
-  result[2] = T(0);
+inline void AngleAxisRotatePoint2(const T angle_axis[3], T result[3]) {
+#if 0
+  T v_0 = T(181778);
+  T v_1 = T(3755064);
+  T v_2 = T(937);
+  T v_3 = T(19356);
+  T v_4 = T(194);
+  T v_5 = angle_axis[0];
+  T v_6 = v_2 * v_5;
+  T v_7 = v_1 * v_6;
+  T v_8 = v_0 * v_6;
+  T v_9 = v_5 * v_7;
+  T v_10 = v_4 * v_5;
+  T v_11 = v_7 + v_10;
+  T v_12 = v_6 * v_8;
+  T v_13 = v_2 * v_8;
+  T v_14 = v_3 * v_6;
+  T v_15 = v_13 + v_14;
+  T v_16 = v_9 + v_12;
+  T v_17 = v_11 + v_15;
+  result[0] = v_16;
+  result[1] = v_17;
+#else
+  T theta2 = angle_axis[0] * T(194);
 
-  const T theta2 = ceres::DotProduct(angle_axis, angle_axis);
+  const T theta = theta2 * T(19356);
+  const T sintheta = theta2 * T(937);
 
-  const T theta = sqrt(theta2);
-  const T theta_inverse = T(1.0) / theta;
-
-  result[0] = angle_axis[1] * theta_inverse;
+  result[0] = theta2 * sintheta + angle_axis[0] * theta;
+//  result[1] = theta2 * sintheta + angle_axis[0] * theta;
+#endif
 }
 
 // Templated pinhole camera model for used with Ceres.  The camera is
 // parameterized using 9 parameters: 3 for rotation, 3 for translation, 1 for
 // focal length and 2 for radial distortion. The principal point is not modeled
 // (i.e. it is assumed be located at the image center).
-struct RotatePoint : public ceres::CodegenCostFunction<3, 3, 3> {
-  RotatePoint() = default;
-
+struct RotatePoint2 : public ceres::CodegenCostFunction<1, 1> {
   template <typename T>
-  bool operator()(const T* const angle_axis,
-                  const T* const pt,
-                  T* result) const {
-    ceres::AngleAxisRotatePoint(angle_axis, pt, result);
+  bool operator()(const T* const angle_axis, T* result) const {
+    //    ceres::AngleAxisRotatePoint(angle_axis, pt, result);
+    AngleAxisRotatePoint2(angle_axis, result);
     return true;
   }
 
 #include "tests/rotatepoint.h"
 };
 
-using RotatePointAD = ceres::internal::CostFunctionToFunctor<RotatePoint>;
+struct RotatePoint : public ceres::CodegenCostFunction<2, 8> {
+  RotatePoint() = default;
+
+  template <typename T>
+  bool operator()(const T* const x, T* y) const {
+    y[0] = x[2] * x[1] * x[0];
+    y[1] = x[0] * x[1] * x[2];
+
+    return true;
+  }
+
+#include "tests/rotatepoint.h"
+};
 
 struct SnavelyReprojectionErrorGen
     : public ceres::CodegenCostFunction<2, 9, 3> {
@@ -139,9 +166,6 @@ struct SnavelyReprojectionErrorGen
   double observed_x;
   double observed_y;
 };
-
-using SnavelyReprojectionAD =
-    ceres::internal::CostFunctionToFunctor<SnavelyReprojectionErrorGen>;
 
 }  // namespace test
 #endif  // CERES_EXAMPLES_SNAVELY_REPROJECTION_ERROR_H_

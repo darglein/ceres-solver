@@ -38,31 +38,33 @@
 #include "compare_cost_functions.h"
 #include "gtest/gtest.h"
 #include "snavely_reprojection_error.h"
+#include "test_utils.h"
 namespace ceres {
 
 namespace examples {
 
 TEST(AutodiffCodeGen, RotatePoint) {
   CostFunction* cost_function = new test::RotatePoint();
-
+  using CostFunctorType = internal::CostFunctionToFunctor<test::RotatePoint>;
   CostFunction* cost_function_ad =
-      new ceres::AutoDiffCostFunction<test::RotatePointAD, 3, 3, 3>(
-          new test::RotatePointAD());
+      new ceres::AutoDiffCostFunction<CostFunctorType, 2, 8>(
+          new CostFunctorType());
 
-  ceres::internal::compare_cost_functions<3, 3, 3>(cost_function,
-                                                   cost_function_ad);
+  ceres::internal::CompareCostFunctions(cost_function, cost_function_ad, 1, 0);
+  //  ceres::internal::compare_cost_functions<1, 1>(cost_function,
+  //                                                cost_function_ad);
 }
 
-TEST(AutodiffCodeGen, SnavelyReprojectionError) {
-  CostFunction* cost_function = new test::SnavelyReprojectionErrorGen(10, 5);
+// TEST(AutodiffCodeGen, SnavelyReprojectionError) {
+//  CostFunction* cost_function = new test::SnavelyReprojectionErrorGen(10, 5);
 
-  CostFunction* cost_function_ad =
-      new ceres::AutoDiffCostFunction<test::SnavelyReprojectionAD, 2, 9, 3>(
-          new test::SnavelyReprojectionAD(10, 5));
+//  CostFunction* cost_function_ad =
+//      new ceres::AutoDiffCostFunction<test::SnavelyReprojectionAD, 2, 9, 3>(
+//          new test::SnavelyReprojectionAD(10, 5));
 
-  ceres::internal::compare_cost_functions<2, 9, 3>(cost_function,
-                                                   cost_function_ad);
-}
+//  ceres::internal::compare_cost_functions<2, 9, 3>(cost_function,
+//                                                   cost_function_ad);
+//}
 
 }  // namespace examples
 }  // namespace ceres
