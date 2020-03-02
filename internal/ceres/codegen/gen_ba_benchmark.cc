@@ -94,11 +94,11 @@ static void BM_DisneyAnalytic(benchmark::State& state) {
 }
 
 static void BM_BAAutoDiff(benchmark::State& state) {
-  double parameter_block1[] = {1., 2., 3., 4., 5., 6.};
+  double parameter_block1[] = {1., 2., 3., 4., 5., 6., 7., 8., 9.};
   double parameter_block2[] = {1., 2., 3.};
   double* parameters[] = {parameter_block1, parameter_block2};
 
-  double jacobian1[2 * 6];
+  double jacobian1[2 * 9];
   double jacobian2[2 * 3];
   double residuals[2];
   double* jacobians[] = {jacobian1, jacobian2};
@@ -106,7 +106,7 @@ static void BM_BAAutoDiff(benchmark::State& state) {
   const double x = 0.2;
   const double y = 0.3;
   std::unique_ptr<ceres::CostFunction> cost_function(
-      new ceres::AutoDiffCostFunction<test::SnavelyReprojectionAD, 2, 6, 3>(
+      new ceres::AutoDiffCostFunction<test::SnavelyReprojectionAD, 2, 9, 3>(
           new test::SnavelyReprojectionAD(x, y)));
 
   while (state.KeepRunning()) {
@@ -116,11 +116,11 @@ static void BM_BAAutoDiff(benchmark::State& state) {
 }
 
 static void BM_BACodeGen(benchmark::State& state) {
-  double parameter_block1[] = {1., 2., 3., 4., 5., 6.};
+  double parameter_block1[] = {1., 2., 3., 4., 5., 6., 7., 8., 9.};
   double parameter_block2[] = {1., 2., 3.};
   double* parameters[] = {parameter_block1, parameter_block2};
 
-  double jacobian1[2 * 6];
+  double jacobian1[2 * 9];
   double jacobian2[2 * 3];
   double residuals[2];
   double* jacobians[] = {jacobian1, jacobian2};
@@ -140,13 +140,13 @@ static void BM_BACodeGen(benchmark::State& state) {
 // BENCHMARK(BM_DisneyAutoDiff)->ArgName("Residual")->Arg(0);
 // BENCHMARK(BM_DisneyAutoDiff)->ArgName("Residual+Jacobian")->Arg(1);
 // BENCHMARK(BM_DisneyCodeGen)->ArgName("Residual")->Arg(0);
-// BENCHMARK(BM_DisneyAnalytic)->ArgName("Residual+Jacobian")->Arg(1);
-// BENCHMARK(BM_DisneyCodeGen)->ArgName("Residual+Jacobian")->Arg(1);
+BENCHMARK(BM_DisneyAnalytic)->ArgName("Residual+Jacobian")->Arg(1);
+BENCHMARK(BM_DisneyCodeGen)->ArgName("Residual+Jacobian")->Arg(1);
 // BENCHMARK(BM_DisneyAnalytic)->ArgName("Residual")->Arg(0);
 // BENCHMARK(BM_BAAutoDiff)->ArgName("Residual")->Arg(0);
-BENCHMARK(BM_BAAutoDiff)->ArgName("Residual+Jacobian")->Arg(1);
+// BENCHMARK(BM_BAAutoDiff)->ArgName("Residual+Jacobian")->Arg(1);
 // BENCHMARK(BM_BACodeGen)->ArgName("Residual")->Arg(0);
-BENCHMARK(BM_BACodeGen)->ArgName("Residual+Jacobian")->Arg(1);
+// BENCHMARK(BM_BACodeGen)->ArgName("Residual+Jacobian")->Arg(1);
 
 }  // namespace ceres
 

@@ -431,6 +431,8 @@ inline OrderingResult MakeLinearOrder(ExpressionGraph& graph,
     std::reverse(leafs2.begin(), leafs2.end());
   }
 
+#if 1
+  // insert into existing expressions
   auto inner_it = all_inner.begin();
   auto leaf_it = leafs2.begin();
 
@@ -455,7 +457,10 @@ inline OrderingResult MakeLinearOrder(ExpressionGraph& graph,
   }
 
   CHECK(leaf_it == leafs2.end());
+#else
+  graph.Insert()
 
+#endif
   //  deps.Rebuild();
 
   return {true, false, all_leafs, all_inner};
@@ -511,17 +516,26 @@ inline OptimizationPassSummary MoveToUsage(ExpressionGraph* graph) {
   ExpressionDependencies deps(*graph);
   for (ExpressionId id = 0; id < graph->Size(); ++id) {
     Expression& expr = graph->ExpressionForId(id);
+
+    //    std::cout << "move to " << expr.HasValidLhs() << std::endl;
+
     if (!expr.HasValidLhs()) {
       continue;
     }
+
     // only move single use ssa expressions
     auto& dep = deps.DataForExpressionId(expr.lhs_id());
+
+    //    std::cout << "move to " << id << " " << dep.IsSSA() << " "
+    //              << dep.used_by.size() << std::endl;
+
     if (!dep.IsSSA() || dep.used_by.size() != 1) {
       continue;
     }
 
     auto used_id = dep.used_by.front();
 
+    //    std::cout << "move to " << id << " " << used_id << std::endl;
     if (id < used_id) {
       // check if all expressions in between are args from used
       // that would be fine too
@@ -538,6 +552,8 @@ inline OptimizationPassSummary MoveToUsage(ExpressionGraph* graph) {
       if (!found) {
         continue;
       }
+    } else {
+      //      std::cout << "bla" << std::endl;
     }
 
     auto expr_cpy = expr;
@@ -555,7 +571,6 @@ inline OptimizationPassSummary MoveToUsage(ExpressionGraph* graph) {
     deps.Rebuild();
 
     //    std::cout << "move " << id << " -> " << used_id << std::endl;
-    break;
   }
 
   summary.end();

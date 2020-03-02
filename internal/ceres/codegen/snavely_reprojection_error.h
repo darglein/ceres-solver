@@ -47,6 +47,22 @@
 
 namespace test {
 
+template <typename T>
+inline void AngleAxisRotatePoint2(const T angle_axis[3],
+                                  const T pt[3],
+                                  T result[3]) {
+  result[0] = T(0);
+  result[1] = T(0);
+  result[2] = T(0);
+
+  const T theta2 = ceres::DotProduct(angle_axis, angle_axis);
+
+  const T theta = sqrt(theta2);
+  const T theta_inverse = T(1.0) / theta;
+
+  result[0] = angle_axis[1] * theta_inverse;
+}
+
 // Templated pinhole camera model for used with Ceres.  The camera is
 // parameterized using 9 parameters: 3 for rotation, 3 for translation, 1 for
 // focal length and 2 for radial distortion. The principal point is not modeled
@@ -62,13 +78,13 @@ struct RotatePoint : public ceres::CodegenCostFunction<3, 3, 3> {
     return true;
   }
 
-  //#include "tests/rotatepoint.h"
+#include "tests/rotatepoint.h"
 };
 
 using RotatePointAD = ceres::internal::CostFunctionToFunctor<RotatePoint>;
 
 struct SnavelyReprojectionErrorGen
-    : public ceres::CodegenCostFunction<2, 6, 3> {
+    : public ceres::CodegenCostFunction<2, 9, 3> {
   SnavelyReprojectionErrorGen(double observed_x, double observed_y)
       : observed_x(observed_x), observed_y(observed_y) {}
 
@@ -84,6 +100,11 @@ struct SnavelyReprojectionErrorGen
     T p[3];
 
     ceres::AngleAxisRotatePoint(camera, point, p);
+
+    residuals[0] = ox - p[0];
+    residuals[1] = T(0);
+    //    residuals[1] = ox - p[1];
+    return true;
 
     // camera[3,4,5] are the translation.
     p[0] += camera[3];

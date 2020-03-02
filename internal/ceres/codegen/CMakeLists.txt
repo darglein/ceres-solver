@@ -77,6 +77,10 @@ if (BUILD_TESTING AND GFLAGS)
   include(CeresCodeGeneration)
 
 
+#  generate_test_functor(MnistFunctor neural_functor.h)
+#  add_executable(mnist mnist.cc )
+#  target_link_libraries(mnist ceres)
+
   generate_test_functor(InputOutputAssignment autodiff_codegen_test.h)
   generate_test_functor(CompileTimeConstants autodiff_codegen_test.h)
   generate_test_functor(Assignments autodiff_codegen_test.h)

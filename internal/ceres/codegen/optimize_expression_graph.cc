@@ -145,7 +145,7 @@ OptimizeExpressionGraphSummary SuperOptimize(
   Reorder(graph, false, "+");
   MoveToUsage(graph);
   auto a3 = OptimizeExpressionGraph(options, graph);
-  return a3;
+  return a2;
 }
 
 }  // namespace internal
