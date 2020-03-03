@@ -375,6 +375,8 @@ class Expression {
   std::vector<ExpressionId>* mutable_arguments() { return &arguments_; }
 
   void UpdateId(ExpressionId source, ExpressionId target);
+  void UpdateId(const std::vector<ExpressionId>& source,
+                const std::vector<ExpressionId>& target);
 
  private:
   ExpressionType type_ = ExpressionType::NOP;

@@ -31,9 +31,55 @@
 #include "codegen/test_utils.h"
 
 #include "ceres/codegen/internal/code_generator.h"
+#include "test_util.h"
 
 namespace ceres {
 namespace internal {
+
+std::pair<std::vector<double>, std::vector<double> > EvaluateCostFunction(
+    const CostFunctionParameters& _params, CostFunction* cost_function) {
+  auto num_residuals = cost_function->num_residuals();
+  auto parameter_block_sizes = cost_function->parameter_block_sizes();
+  auto num_parameter_blocks = parameter_block_sizes.size();
+
+  int total_num_parameters = 0;
+  for (auto block_size : parameter_block_sizes) {
+    total_num_parameters += block_size;
+  }
+
+  std::vector<const double*> params = _params.Pointer();
+  std::vector<double> residuals(num_residuals, 0);
+  std::vector<double> jacobians_array(num_residuals * total_num_parameters, 0);
+  std::vector<double*> jacobians(num_parameter_blocks);
+
+  for (int i = 0, k = 0; i < num_parameter_blocks;
+       k += parameter_block_sizes[i], ++i) {
+    jacobians[i] = &jacobians_array[k * num_residuals];
+  }
+
+  cost_function->Evaluate(params.data(), residuals.data(), jacobians.data());
+
+  return std::make_pair(residuals, jacobians_array);
+}
+
+void CompareCostFunctions(CostFunction* cost_function1,
+                          CostFunction* cost_function2,
+                          const CostFunctionParameters& _params,
+                          double tol) {
+  auto residuals_and_jacobians_1 =
+      EvaluateCostFunction(_params, cost_function1);
+  auto residuals_and_jacobians_2 =
+      EvaluateCostFunction(_params, cost_function2);
+
+  ExpectArraysClose(residuals_and_jacobians_1.first.size(),
+                    residuals_and_jacobians_1.first.data(),
+                    residuals_and_jacobians_2.first.data(),
+                    tol);
+  ExpectArraysClose(residuals_and_jacobians_1.second.size(),
+                    residuals_and_jacobians_1.second.data(),
+                    residuals_and_jacobians_2.second.data(),
+                    tol);
+}
 
 std::pair<std::vector<double>, std::vector<double> > EvaluateCostFunction(
     CostFunction* cost_function, double value) {

@@ -92,6 +92,12 @@ inline OptimizationPassSummary ZeroOnePropagation(
           expr.Replace(
               Expression::CreateAssignment(kInvalidExpressionId, left_id));
           summary.num_expressions_modified++;
+        } else if (left_expr.IsCompileTimeConstantAndEqualTo(-1)) {
+          expr.Replace(Expression::CreateUnaryArithmetic("-", right_id));
+          summary.num_expressions_modified++;
+        } else if (right_expr.IsCompileTimeConstantAndEqualTo(-1)) {
+          expr.Replace(Expression::CreateUnaryArithmetic("-", left_id));
+          summary.num_expressions_modified++;
         }
       } else if (expr.name() == "/") {
         if (!strict_ieee_float &&

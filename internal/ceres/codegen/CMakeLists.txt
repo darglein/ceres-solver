@@ -106,8 +106,8 @@ if (BUILD_TESTING AND GFLAGS)
   generate_test_functor(Test autodiff_codegen_test2.h)
   ceres_test(autodiff_codegen_small Test)
 
-  generate_test_functor(DisneyBRDF DisneyBRDF.h)
-  ceres_test(autodiff_codegen_brdf DisneyBRDF)
+  generate_test_functor(DisneyBRDF brdf_cost_function.h)
+  ceres_test(brdf DisneyBRDF)
 
   generate_test_functor(Projective gen_autodiff_test_functors.h)
   generate_test_functor(Residual1Param gen_autodiff_test_functors.h)
@@ -118,7 +118,7 @@ if (BUILD_TESTING AND GFLAGS)
 
   generate_test_functor(RotatePoint snavely_reprojection_error.h)
   generate_test_functor(SnavelyReprojectionErrorGen snavely_reprojection_error.h)
-  ceres_test(gen_reprojection_error RotatePoint)
+  ceres_test(gen_reprojection_error RotatePoint SnavelyReprojectionErrorGen)
 endif()
 
 if (BUILD_BENCHMARKS)
@@ -128,5 +128,8 @@ if (BUILD_BENCHMARKS)
   add_dependencies_to_benchmark(gen_rat43_benchmark Rat43CostFunctor)
 
   add_executable(gen_ba_benchmark gen_ba_benchmark.cc)
-  add_dependencies_to_benchmark(gen_ba_benchmark SnavelyReprojectionErrorGen DisneyBRDF)
+  add_dependencies_to_benchmark(gen_ba_benchmark SnavelyReprojectionErrorGen)
+  
+ add_executable(brdf_benchmark brdf_benchmark.cc)
+  add_dependencies_to_benchmark(brdf_benchmark DisneyBRDF)
 endif()

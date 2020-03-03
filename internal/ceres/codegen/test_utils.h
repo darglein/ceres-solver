@@ -35,7 +35,7 @@
 #include "ceres/internal/autodiff.h"
 #include "ceres/random.h"
 #include "ceres/sized_cost_function.h"
-#include "test_util.h"
+
 namespace ceres {
 namespace internal {
 
@@ -64,6 +64,41 @@ struct CostFunctionToFunctor {
   CostFunction cost_function;
 };
 
+struct CostFunctionParameters {
+  CostFunctionParameters(CostFunction* cost_function) {
+    auto parameter_block_sizes = cost_function->parameter_block_sizes();
+    for (auto pbs : parameter_block_sizes) {
+      params.push_back(std::vector<double>(pbs));
+    }
+  }
+
+  void MakeRandom() {
+    for (auto& block : params) {
+      for (auto& value : block) {
+        value = ceres::RandDouble();
+      }
+    }
+  }
+
+  void MakeEqual(double v) {
+    for (auto& block : params) {
+      for (auto& value : block) {
+        value = v;
+      }
+    }
+  }
+
+  std::vector<const double*> Pointer() const {
+    std::vector<const double*> res;
+    for (auto& block : params) {
+      res.push_back(block.data());
+    }
+    return res;
+  }
+
+  std::vector<std::vector<double>> params;
+};
+
 // Evaluate a cost function and return the residuals and jacobians.
 // All parameters are set to 'value'.
 std::pair<std::vector<double>, std::vector<double>> EvaluateCostFunction(
@@ -75,6 +110,11 @@ std::pair<std::vector<double>, std::vector<double>> EvaluateCostFunction(
 void CompareCostFunctions(CostFunction* cost_function1,
                           CostFunction* cost_function2,
                           double value,
+                          double tol);
+
+void CompareCostFunctions(CostFunction* cost_function1,
+                          CostFunction* cost_function2,
+                          const CostFunctionParameters& _params,
                           double tol);
 
 void CompareExpressionGraphs(const ExpressionGraph& graph1,

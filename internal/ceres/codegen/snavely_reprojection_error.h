@@ -97,12 +97,20 @@ struct RotatePoint2 : public ceres::CodegenCostFunction<1, 1> {
 };
 
 struct RotatePoint : public ceres::CodegenCostFunction<2, 8> {
-  RotatePoint() = default;
-
   template <typename T>
   bool operator()(const T* const x, T* y) const {
-    y[0] = x[2] * x[1] * x[0];
-    y[1] = x[0] * x[1] * x[2];
+    T c1(2);
+    T c2(3);
+    T c3(4);
+
+    T theta2 = x[0] * c1;
+    T theta = theta2 * c2;
+    T sintheta = theta2 * c3;
+
+    y[0] = theta2 * sintheta + x[0] * theta;
+    y[1] = T(0);
+    //    y[0] = x[2] * x[1] * x[0];
+    //    y[1] = x[0] * x[1] * x[2];
 
     return true;
   }
@@ -128,10 +136,10 @@ struct SnavelyReprojectionErrorGen
 
     ceres::AngleAxisRotatePoint(camera, point, p);
 
-    residuals[0] = ox - p[0];
-    residuals[1] = T(0);
+    //    residuals[0] = ox - p[0];
+    //    residuals[1] = T(0);
     //    residuals[1] = ox - p[1];
-    return true;
+    //    return true;
 
     // camera[3,4,5] are the translation.
     p[0] += camera[3];

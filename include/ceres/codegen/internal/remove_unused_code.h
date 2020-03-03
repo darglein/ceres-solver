@@ -343,7 +343,7 @@ struct OrderingResult {
   bool in_order;
   bool leaf;
   std::vector<ExpressionId> leaf_nodes;
-  std::set<ExpressionId> internal_nodes;
+  std::vector<ExpressionId> internal_nodes;
 
   ExpressionId largestLeaf() {
     if (leaf_nodes.empty()) return kInvalidExpressionId;
@@ -383,15 +383,76 @@ inline OrderingResult MakeLinearOrder(ExpressionGraph& graph,
   auto res_right =
       MakeLinearOrder(graph, deps, expr.arguments()[1], forward, v);
 
+  //  std::cout << id << " left: " << res_left << std::endl;
+  //  std::cout << id << " right: " << res_right << std::endl;
+
+  CHECK(res_left.in_order);
+  CHECK(res_right.in_order);
+
   std::vector<ExpressionId> all_leafs = res_left.leaf_nodes;
   all_leafs.insert(all_leafs.end(),
                    res_right.leaf_nodes.begin(),
                    res_right.leaf_nodes.end());
 
-  std::set<ExpressionId> all_inner = res_left.internal_nodes;
-  all_inner.insert(res_right.internal_nodes.begin(),
+  std::vector<ExpressionId> all_inner = res_left.internal_nodes;
+  all_inner.insert(all_inner.end(),
+                   res_right.internal_nodes.begin(),
                    res_right.internal_nodes.end());
 
+  if (res_left.leaf && res_right.leaf) {
+    // just swap in place if needed
+    if (res_left.leaf_nodes[0] > res_right.leaf_nodes[0] == forward) {
+      std::swap((*expr.mutable_arguments())[0], (*expr.mutable_arguments())[1]);
+      //      std::cout << "swap " << id << std::endl;
+      return {true, false, all_leafs, all_inner};
+    }
+    return {true, false, all_leafs, all_inner};
+  }
+
+  if (forward) {
+    if (std::is_sorted(
+            all_leafs.begin(), all_leafs.end(), std::less<ExpressionId>())) {
+      return {true, false, all_leafs, all_inner};
+    }
+    std::sort(all_leafs.begin(), all_leafs.end(), std::less<ExpressionId>());
+  } else {
+    if (std::is_sorted(
+            all_leafs.begin(), all_leafs.end(), std::greater<ExpressionId>())) {
+      return {true, false, all_leafs, all_inner};
+    }
+    std::sort(all_leafs.begin(), all_leafs.end(), std::greater<ExpressionId>());
+  }
+
+  auto current_id = id;
+
+  //  graph.Insert(current_id, Expression::CreateComment("start"));
+  //  current_id++;
+
+  graph.Insert(
+      current_id,
+      Expression::CreateBinaryArithmetic(v, all_leafs[0], all_leafs[1]));
+  current_id++;
+
+  for (int i = 2; i < all_leafs.size(); ++i) {
+    graph.Insert(
+        current_id,
+        Expression::CreateBinaryArithmetic(v, current_id - 1, all_leafs[i]));
+    current_id++;
+  }
+
+  // replace the actual exprsesion with an assignemnt
+  graph.ExpressionForId(current_id)
+      .Replace(
+          Expression::CreateAssignment(kInvalidExpressionId, current_id - 1));
+
+  //  graph.Insert(current_id, Expression::CreateComment("end"));
+  //  current_id++;
+  //  CHECK(false);
+
+  deps.Rebuild();
+  return {false, false, all_leafs, all_inner};
+
+#if 0
   // this is an valid inner id
   all_inner.insert(id);
 
@@ -459,12 +520,14 @@ inline OrderingResult MakeLinearOrder(ExpressionGraph& graph,
 
   CHECK(leaf_it == leafs2.end());
 #else
-  graph.Insert()
+  graph
+      .Insert()
 
 #endif
-  //  deps.Rebuild();
+  deps.Rebuild();
 
   return {true, false, all_leafs, all_inner};
+#endif
 }  // namespace internal
 
 inline OptimizationPassSummary SortArguments(ExpressionGraph* graph) {
@@ -515,10 +578,20 @@ inline OptimizationPassSummary Reorder(ExpressionGraph* graph,
 
   ExpressionDependencies deps(*graph);
   for (ExpressionId id = 0; id < graph->Size(); ++id) {
-    std::cout << "linearize " << id << std::endl;
-    MakeLinearOrder(*graph, deps, id, forward, v);
+    //    std::cout << "linearize " << id << std::endl;
+    auto res = MakeLinearOrder(*graph, deps, id, forward, v);
+    //    CHECK(res.in_order);
+    if (!res.in_order) {
+      //      break;
+    }
   }
 
+  for (ExpressionId id = 0; id < graph->Size(); ++id) {
+    auto res = MakeLinearOrder(*graph, deps, id, forward, v);
+    CHECK(res.in_order);
+  }
+
+  CHECK(CheckForwardArguments(graph));
   summary.end();
   return summary;
 }
@@ -557,6 +630,7 @@ inline OptimizationPassSummary MoveToUsage(ExpressionGraph* graph) {
 #if 1
     //    std::cout << "move to " << id << " " << used_id << std::endl;
     if (id < used_id) {
+      continue;
       // check if all expressions in between are args from used
       // that would be fine too
       auto& used_expr = graph->ExpressionForId(used_id);
@@ -575,6 +649,11 @@ inline OptimizationPassSummary MoveToUsage(ExpressionGraph* graph) {
     } else {
       //      std::cout << "bla" << std::endl;
     }
+#else
+
+    if (id == used_id + 1) {
+      continue;
+    }
 #endif
 
     auto expr_cpy = expr;
@@ -591,7 +670,7 @@ inline OptimizationPassSummary MoveToUsage(ExpressionGraph* graph) {
 
     deps.Rebuild();
 
-    //    std::cout << "move " << id << " -> " << used_id << std::endl;
+    std::cout << "move " << id << " -> " << used_id << std::endl;
   }
 
   summary.end();

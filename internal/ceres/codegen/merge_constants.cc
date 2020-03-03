@@ -30,7 +30,9 @@
 //
 #include "ceres/codegen/internal/merge_constants.h"
 
+#include <algorithm>
 #include <cmath>
+#include <iostream>
 
 #include "ceres/codegen/internal/expression_dependencies.h"
 #include "glog/logging.h"
@@ -204,11 +206,56 @@ static OptimizationPassSummary MergeCompileTimeConstants(
   return summary;
 }
 
+// Merge compile time constants of the same value.
+// Only merges values from the constant section
+static OptimizationPassSummary SortCompileTimeConstants(
+    ExpressionGraph* graph) {
+  OptimizationPassSummary summary;
+  summary.optimization_pass_name = "SortCompileTimeConstants";
+
+  summary.start();
+  ExpressionId end_of_constant_section = EndOfConstantSection(*graph);
+
+  std::vector<std::pair<double, int>> exprs;
+  std::vector<ExpressionId> source_id;
+
+  for (ExpressionId id = 0; id < end_of_constant_section; ++id) {
+    auto& expr = graph->ExpressionForId(id);
+    exprs.emplace_back(expr.value(), id);
+    source_id.push_back(id);
+  }
+
+  //  auto new_exprs = exprs;
+  std::sort(exprs.begin(), exprs.end());
+
+  std::vector<ExpressionId> target_id(end_of_constant_section);
+
+  for (ExpressionId id = 0; id < end_of_constant_section; ++id) {
+    auto& expr = graph->ExpressionForId(id);
+    expr.Replace(Expression::CreateCompileTimeConstant(exprs[id].first));
+
+    target_id[exprs[id].second] = id;
+  }
+
+  //  for (ExpressionId id = 0; id < end_of_constant_section; ++id) {
+  //    std::cout << source_id[id] << " " << target_id[id] << std::endl;
+  //  }
+
+  for (ExpressionId i = end_of_constant_section; i < graph->Size(); ++i) {
+    auto& expr = graph->ExpressionForId(i);
+
+    expr.UpdateId(source_id, target_id);
+  }
+
+  summary.end();
+  return summary;
+}  // namespace internal
+
 OptimizationPassSummary MergeConstants(ExpressionGraph* graph) {
   ConstantsToSSA(graph);
   OptimizationPassSummary summary1 = MoveConstantsToBeginning(graph);
   OptimizationPassSummary summary2 = MergeCompileTimeConstants(graph);
-
+  SortCompileTimeConstants(graph);
   OptimizationPassSummary combined;
   //  combined.expression_graph_changed =
   //      summary1.expression_graph_changed | summary2.expression_graph_changed;

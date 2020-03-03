@@ -31,42 +31,31 @@
 // This file tests the Expression class. For each member function one test is
 // included here.
 //
-#include "ceres/internal/autodiff.h"
-//
-#include "DisneyBRDF.h"
-#include "DisneyBRDFAnalytic.h"
+#include "brdf_analytic.h"
+#include "brdf_cost_function.h"
 #include "ceres/autodiff_cost_function.h"
 #include "ceres/codegen/internal/expression.h"
+#include "ceres/internal/autodiff.h"
 #include "common.h"
 #include "compare_cost_functions.h"
 #include "gtest/gtest.h"
+#include "test_utils.h"
 
 namespace ceres {
 namespace internal {
 
-template <typename FunctorType, int kNumResiduals, int... Ns>
-void test_functor() {
-  FunctorType cost_function_generated;
-  CostFunctionToFunctor<FunctorType> cost_functor;
-  auto* cost_function_ad =
-      new ceres::AutoDiffCostFunction<CostFunctionToFunctor<FunctorType>,
-                                      kNumResiduals,
-                                      Ns...>(&cost_functor);
-
-  auto* cost_function_analytic = new test::DisneyBRDFAnalytic;
-
-  // Run N times with random values in the range [-1,1]
-  for (int i = 0; i < 1; ++i) {
-    ceres::internal::compare_cost_functions<kNumResiduals, Ns...>(
-        //        &cost_function_generated, cost_function_ad, true);
-        cost_function_analytic,
-        cost_function_ad,
-        true);
-  }
-}
-
 TEST(AutodiffCodeGen, InputOutputAssignment) {
-  test_functor<test::DisneyBRDF, 3, 10>();
+  using Type = test::DisneyBRDF;
+  CostFunction* cost_function = new Type;
+  using CostFunctorType = internal::CostFunctionToFunctor<Type>;
+  CostFunction* cost_function_ad =
+      new ceres::AutoDiffCostFunction<CostFunctorType, 3, 10>(
+          new CostFunctorType());
+  auto* cost_function_analytic = new test::DisneyBRDFAnalytic;
+  ceres::internal::CompareCostFunctions(
+      cost_function, cost_function_ad, 1, 1e-10);
+  ceres::internal::CompareCostFunctions(
+      cost_function, cost_function_analytic, 1, 1e-10);
 }
 
 }  // namespace internal

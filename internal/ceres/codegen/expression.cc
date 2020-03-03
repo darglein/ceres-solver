@@ -255,5 +255,23 @@ void Expression::UpdateId(ExpressionId source, ExpressionId target) {
   }
 }
 
+void Expression::UpdateId(const std::vector<ExpressionId>& source,
+                          const std::vector<ExpressionId>& target) {
+  for (int i = 0; i < source.size(); ++i) {
+    if (lhs_id_ == source[i]) {
+      lhs_id_ = target[i];
+    }
+  }
+
+  for (auto& p : arguments_) {
+    for (int i = 0; i < source.size(); ++i) {
+      if (p == source[i]) {
+        p = target[i];
+        break;
+      }
+    }
+  }
+}
+
 }  // namespace internal
 }  // namespace ceres

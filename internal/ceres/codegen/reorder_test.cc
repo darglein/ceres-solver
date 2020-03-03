@@ -57,23 +57,85 @@ static void GenerateAndCheck(const ExpressionGraph& graph) {
   }
 }
 
+TEST(Reorder, Sort) {
+  return;
+  StartRecordingExpressions();
+  using T = ExpressionRef;
+  {
+    T v_3 = T(3);
+    T v_2 = T(2);
+    T v_1 = T(1);
+    T v_0 = T(0);
+
+    T result = v_0 + v_1 * v_2 + v_3;
+
+    //    T y = ((x[0] + x[1]) + x[4]) * (x[2] + x[3]);
+    //    MakeOutput(y, "o");
+  }
+  auto graph = StopRecordingExpressions();
+
+  GenerateAndCheck(graph);
+
+  MergeConstants(&graph);
+  GenerateAndCheck(graph);
+}
+
 TEST(Reorder, Flow) {
   StartRecordingExpressions();
   using T = ExpressionRef;
   {
-    const int inputs = 5;
-    T x[inputs];
-    for (int i = 0; i < inputs; ++i) {
-      x[i] = T(i);
-    }
+    T v_0 = T(0);
+    T v_1 = T(2);
+    T v_2 = T(3);
+    T v_3 = T(4);
+    T v_4 = T(6);
+    T v_5 = T(8);
+    T v_6 = MakeInputAssignment<T>(0, "parameters[0][0]");
+    //    T v_7 = v_1 * v_6;   // 1 * 6
+    //    T v_8 = v_2 * v_7;   // 2 * 7
+    //    T v_9 = v_3 * v_7;   // 1 * 3 * 6
+    //    T v_10 = v_6 * v_8;  // 2 * 6 * 7
+    //    T v_11 = v_4 * v_6;  // 4 * 6
+    T v_7 = T(2);
+    T v_8 = T(2);
+    T v_9 = T(2);
+    T v_10 = T(2);
+    T v_11 = T(2);
 
-    T y = ((x[0] + x[1]) + x[4]) * (x[2] + x[3]);
+    T v_12 = v_8 + v_11;   // 2 * 7 + 4 * 6
+    T v_14 = v_1 * v_9;    // 1 * 1 * 3 * 6
+    T v_15 = v_5 * v_7;    // 5 * 1 * 6
+    T v_16 = v_14 + v_15;  //  1 * 1 * 3 * 6   +    1 * 6
+    T v_18 = v_12 + v_16;  //
+    MakeOutput(v_18, "r[2]");
+
+    //    v_7 = v_1 * v_6;
+    //    v_8 = v_2 * v_7;
+    //    v_9 = v_3 * v_7;
+    //    v_10 = v_6 * v_8;
+    //    v_11 = v_4 * v_6;
+
+    //    v_12 = v_15 + v_14;
+    //    v_13 = v_7 * v_9;
+    //    v_14 = v_1 * v_9;
+    //    v_15 = v_5 * v_7;
+    //    v_16 = v_12 + v_11;
+    //    v_17 = v_10 + v_13;
+    //    v_18 = v_16 + v_8;
+
+    //    T y = ((x[0] + x[1]) + x[4]) * (x[2] + x[3]);
     //    MakeOutput(y, "o");
   }
   auto graph = StopRecordingExpressions();
 
   GenerateAndCheck(graph);
   Reorder(&graph, false, "+");
+  MoveToUsage(&graph);
+
+  //  {
+  //    MergeConstants(&graph);
+  EliminateNops(&graph);
+  //  }
   GenerateAndCheck(graph);
 }
 

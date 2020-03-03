@@ -604,7 +604,7 @@ struct DisneyBRDFAnalytic : public ceres::SizedCostFunction<3, 10> {
     const T a2 = alphaG * alphaG;
     const T NdotV2 = NdotV * NdotV;
 
-    const T root = ceres::sqrt(a2 + NdotV2 - a2 * NdotV2);
+    const T root = sqrt(a2 + NdotV2 - a2 * NdotV2);
 
     const T nominator = T(1) + NdotV * (T(1) - a2) / root;
     const T denominator = NdotV + root;
