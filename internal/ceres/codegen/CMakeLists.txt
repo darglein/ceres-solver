@@ -77,9 +77,9 @@ if (BUILD_TESTING AND GFLAGS)
   include(CeresCodeGeneration)
 
 
-#  generate_test_functor(MnistFunctor neural_functor.h)
-#  add_executable(mnist mnist.cc )
-#  target_link_libraries(mnist ceres)
+  #  generate_test_functor(MnistFunctor neural_functor.h)
+  #  add_executable(mnist mnist.cc )
+  #  target_link_libraries(mnist ceres)
 
   generate_test_functor(InputOutputAssignment autodiff_codegen_test.h)
   generate_test_functor(CompileTimeConstants autodiff_codegen_test.h)
@@ -130,6 +130,10 @@ if (BUILD_BENCHMARKS)
   add_executable(gen_ba_benchmark gen_ba_benchmark.cc)
   add_dependencies_to_benchmark(gen_ba_benchmark SnavelyReprojectionErrorGen)
   
- add_executable(brdf_benchmark brdf_benchmark.cc)
+  add_executable(brdf_benchmark brdf_benchmark.cc)
   add_dependencies_to_benchmark(brdf_benchmark DisneyBRDF)
+
+  generate_test_functor(NeuralBACost network_cost_function.h)
+  add_executable(network_benchmark network_benchmark.cc)
+  add_dependencies_to_benchmark(network_benchmark NeuralBACost)
 endif()

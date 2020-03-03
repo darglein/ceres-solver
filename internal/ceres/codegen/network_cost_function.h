@@ -50,14 +50,12 @@ static constexpr int nn_size =
     (inner_layers * DenseLayerSize(inner_size, inner_size)) +
     DenseLayerSize(inner_size, output_size);
 
-struct NeuralBACost  //: public
-                     // ceres::CodegenCostFunction<10,DenseLayerSize(784,128)+
-                     // (2
-                     //* DenseLayerSize(128,128)) + DenseLayerSize(128,10)> {
-{
+struct NeuralBACost
+    : public ceres::CodegenCostFunction<2, 7, 3, 5 * DenseLayerSize(2, 2)> {
   template <typename T>
   bool operator()(const T* const camera,
                   const T* const point,
+                  const T* const network_params,
                   T* residuals) const {
     T ox = CERES_LOCAL_VARIABLE(T, observed_x);
     T oy = CERES_LOCAL_VARIABLE(T, observed_y);
@@ -78,15 +76,29 @@ struct NeuralBACost  //: public
     const T xp = -p[0] / p[2];
     const T yp = -p[1] / p[2];
 
-    const T r2 = xp * xp + yp * yp;
-    const T distortion = T(1.0) + r2 * (l1 + l2 * r2);
+    T x[2] = {xp, yp};
+    T tmp[2];
+
+    int current_params = 0;
+    for (int i = 0; i < 5; ++i) {
+      DenseLayer(network_params + current_params, x, tmp, 2, 2);
+      //      SigmoidArray(tmp, x, 2);
+      for (int j = 0; j < 2; ++j) {
+        x[j] = tmp[j];
+      }
+      //      current_params += DenseLayerSize(2, 2);
+    }
+
+    //    x[0] = tmp[0];
+    //    x[1] = tmp[1];
 
     // Compute final projected point position.
     const T& focal = camera[6];
-    const T predicted_x = focal * distortion * xp;
-    const T predicted_y = focal * distortion * yp;
+    const T predicted_x = focal * x[0];
+    const T predicted_y = focal * x[1];
 
-    // The error is the difference between the predicted and observed position.
+    // The error is the difference between the predicted and observed
+    // position.
     residuals[0] = predicted_x - ox;
     residuals[1] = predicted_y - oy;
 
@@ -105,10 +117,13 @@ struct NeuralBACost  //: public
     for (int i = 0; i < output_size; ++i) {
       T weighted_sum = T(0);
       for (int j = 0; j < input_size; ++j) {
-        weighted_sum += params[i * (input_size + 1) + j] * input[i];
+        weighted_sum += params[i * (input_size + 1) + j] * input[j];
       }
       // add bias
-      weighted_sum += params[i * (input_size + 1) + input_size];
+      //      weighted_sum += params[i * (input_size + 1) + input_size];
+
+      output[i] = weighted_sum;
+      //      output[i] = input[i];
     }
   }
 
@@ -131,7 +146,7 @@ struct NeuralBACost  //: public
     }
   }
 
-  //#include "tests/residual4param.h"
+#include "tests/neuralbacost.h"
 };  // namespace test
 
 }  // namespace test

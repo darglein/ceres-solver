@@ -60,17 +60,21 @@ OptimizeExpressionGraphSummary OptimizeExpressionGraph(
       auto pass_summary = MergeConstants(graph);
       changed |= pass_summary.expression_graph_changed;
       summary.summaries.push_back(pass_summary);
+      std::cout << pass_summary << std::endl;
     }
+    CHECK(CheckForwardArguments(graph));
     if (options.eliminate_nops) {
       auto pass_summary = EliminateNops(graph);
       changed |= pass_summary.expression_graph_changed;
       summary.summaries.push_back(pass_summary);
+      std::cout << pass_summary << std::endl;
     }
 
     {
       auto pass_summary = RemoveUnusedCode(graph);
       changed |= pass_summary.expression_graph_changed;
       summary.summaries.push_back(pass_summary);
+      std::cout << pass_summary << std::endl;
     }
 
     {
@@ -78,30 +82,25 @@ OptimizeExpressionGraphSummary OptimizeExpressionGraph(
       changed |= pass_summary.expression_graph_changed;
       summary.summaries.push_back(pass_summary);
     }
-
+    CHECK(CheckForwardArguments(graph));
     {
       auto pass_summary = TrivialAssignmentElimination(graph);
       changed |= pass_summary.expression_graph_changed;
       summary.summaries.push_back(pass_summary);
     }
     {
-      auto pass_summary = ConstantFolding(graph);
-      changed |= pass_summary.expression_graph_changed;
-      summary.summaries.push_back(pass_summary);
-    }
-
-    {
       auto pass_summary = ForwardFlow(graph);
       changed |= pass_summary.expression_graph_changed;
       summary.summaries.push_back(pass_summary);
     }
-#if 1
 
     {
-      auto pass_summary = ZeroOnePropagation(graph, true);
+      auto pass_summary = ZeroOnePropagation(graph, false);
       changed |= pass_summary.expression_graph_changed;
       summary.summaries.push_back(pass_summary);
     }
+
+    CHECK(CheckForwardArguments(graph));
 
     if (options.eliminate_nops) {
       auto pass_summary = EliminateNops(graph);
@@ -121,6 +120,15 @@ OptimizeExpressionGraphSummary OptimizeExpressionGraph(
       changed |= pass_summary.expression_graph_changed;
       summary.summaries.push_back(pass_summary);
     }
+    CHECK(CheckForwardArguments(graph));
+#if 1
+    {
+      auto pass_summary = ConstantFolding(graph);
+      changed |= pass_summary.expression_graph_changed;
+      summary.summaries.push_back(pass_summary);
+    }
+    CHECK(CheckForwardArguments(graph));
+
 #endif
 
 #if 0
@@ -136,9 +144,9 @@ OptimizeExpressionGraphSummary OptimizeExpressionGraph(
 OptimizeExpressionGraphSummary SuperOptimize(
     const OptimizeExpressionGraphOptions& options, ExpressionGraph* graph) {
   //  return OptimizeExpressionGraph(options, graph);
-  return OptimizeExpressionGraphSummary();
-  CHECK(CheckForwardArguments(graph));
   auto a1 = OptimizeExpressionGraph(options, graph);
+  CHECK(CheckForwardArguments(graph));
+  //  return OptimizeExpressionGraphSummary();
   //  return a1;
   CHECK(CheckForwardArguments(graph));
   Reorder(graph, true, "*");

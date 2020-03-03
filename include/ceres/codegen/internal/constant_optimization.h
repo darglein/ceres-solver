@@ -39,6 +39,7 @@
 #include "ceres/codegen/internal/expression_dependencies.h"
 #include "ceres/codegen/internal/expression_graph.h"
 #include "ceres/codegen/internal/optimization_pass_summary.h"
+#include "glog/logging.h"
 namespace ceres {
 namespace internal {
 
@@ -157,16 +158,20 @@ inline OptimizationPassSummary ConstantFolding(ExpressionGraph* graph) {
         all_const = false;
         break;
       }
+      CHECK(dep.DataForExpressionId(a).IsSSA());
     }
     if (!all_const) {
       continue;
     }
+
+    continue;
 
     // Evaluate + replace by compile time constant
     switch (expr.type()) {
       case ExpressionType::ASSIGNMENT: {
         auto& rhs_expr0 = graph->ExpressionForId(expr.arguments()[0]);
         expr.Replace(Expression::CreateCompileTimeConstant(rhs_expr0.value()));
+        break;
       }
       case ExpressionType::UNARY_ARITHMETIC: {
         auto& rhs_expr0 = graph->ExpressionForId(expr.arguments()[0]);
@@ -201,8 +206,10 @@ inline OptimizationPassSummary ConstantFolding(ExpressionGraph* graph) {
           expr.Replace(Expression::CreateCompileTimeConstant(value));
           summary.num_expressions_modified++;
         }
+        break;
       }
     }
+    dep.Rebuild();
   }
   summary.expression_graph_changed = summary.num_expressions_modified > 0;
   summary.end();

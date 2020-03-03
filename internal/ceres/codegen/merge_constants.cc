@@ -64,6 +64,9 @@ static OptimizationPassSummary ConstantsToSSA(ExpressionGraph* graph) {
     graph->ExpressionForId(id + 1).Replace(
         Expression::CreateAssignment(kInvalidExpressionId, id));
 
+    // After insertion rebuild is mandatory!
+    dep.Rebuild();
+
     summary.num_expressions_inserted++;
     summary.num_expressions_modified++;
     summary.expression_graph_changed = true;
@@ -253,15 +256,16 @@ static OptimizationPassSummary SortCompileTimeConstants(
 
 OptimizationPassSummary MergeConstants(ExpressionGraph* graph) {
   ConstantsToSSA(graph);
-  OptimizationPassSummary summary1 = MoveConstantsToBeginning(graph);
-  OptimizationPassSummary summary2 = MergeCompileTimeConstants(graph);
-  SortCompileTimeConstants(graph);
-  OptimizationPassSummary combined;
+
+  //  OptimizationPassSummary summary1 = MoveConstantsToBeginning(graph);
+  //  OptimizationPassSummary summary2 = MergeCompileTimeConstants(graph);
+  //  SortCompileTimeConstants(graph);
+  //  OptimizationPassSummary combined;
   //  combined.expression_graph_changed =
   //      summary1.expression_graph_changed | summary2.expression_graph_changed;
   //  combined.num_expressions_modified =
   //      summary1.num_expressions_modified + summary2.num_expressions_modified;
-  return combined;
+  return OptimizationPassSummary();
 }
 
 }  // namespace internal

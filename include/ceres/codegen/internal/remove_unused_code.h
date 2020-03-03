@@ -554,6 +554,7 @@ inline OptimizationPassSummary SortArguments(ExpressionGraph* graph) {
 }
 
 inline bool CheckForwardArguments(ExpressionGraph* graph) {
+  ExpressionDependencies deps(*graph);
   for (ExpressionId id = 0; id < graph->Size(); ++id) {
     Expression& expr = graph->ExpressionForId(id);
     for (auto a : expr.arguments()) {
@@ -562,6 +563,12 @@ inline bool CheckForwardArguments(ExpressionGraph* graph) {
                   << std::endl;
         return false;
       }
+    }
+
+    if (expr.type() == ExpressionType::COMPILE_TIME_CONSTANT &&
+        !deps.DataForExpressionId(expr.lhs_id()).IsSSA()) {
+      std::cout << "constant not ssa" << std::endl;
+      return false;
     }
   }
   return true;

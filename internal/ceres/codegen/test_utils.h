@@ -65,11 +65,22 @@ struct CostFunctionToFunctor {
 };
 
 struct CostFunctionParameters {
+  CostFunctionParameters() = default;
+  CostFunctionParameters(const CostFunctionParameters&) = delete;
+  CostFunctionParameters& operator=(const CostFunctionParameters&) = delete;
+
   CostFunctionParameters(CostFunction* cost_function) {
     auto parameter_block_sizes = cost_function->parameter_block_sizes();
     for (auto pbs : parameter_block_sizes) {
       params.push_back(std::vector<double>(pbs));
+      param_pointer.push_back(params.back().data());
+
+      jacobians.push_back(
+          std::vector<double>(pbs * cost_function->num_residuals()));
+      jacobians_pointer.push_back(jacobians.back().data());
     }
+
+    residuals.resize(cost_function->num_residuals());
   }
 
   void MakeRandom() {
@@ -88,15 +99,18 @@ struct CostFunctionParameters {
     }
   }
 
-  std::vector<const double*> Pointer() const {
-    std::vector<const double*> res;
-    for (auto& block : params) {
-      res.push_back(block.data());
-    }
-    return res;
-  }
+  double** Params() { return param_pointer.data(); }
+  double* Residuals() { return residuals.data(); }
+  double** Jacobians() { return jacobians_pointer.data(); }
 
+ private:
   std::vector<std::vector<double>> params;
+  std::vector<double*> param_pointer;
+
+  std::vector<double> residuals;
+
+  std::vector<std::vector<double>> jacobians;
+  std::vector<double*> jacobians_pointer;
 };
 
 // Evaluate a cost function and return the residuals and jacobians.
