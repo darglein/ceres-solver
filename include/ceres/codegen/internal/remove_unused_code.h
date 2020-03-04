@@ -105,6 +105,8 @@ inline OptimizationPassSummary ForwardFlow(ExpressionGraph* graph) {
   summary.optimization_pass_name = "ForwardFlow";
   summary.start();
 
+  //  std::cout << "ForwardFlow" << std::endl;
+
   ExpressionDependencies expr_dep(*graph);
   CFG cfg(*graph);
 
@@ -181,8 +183,7 @@ inline OptimizationPassSummary ForwardFlow(ExpressionGraph* graph) {
       //      {
       //        auto ex = writes[]
       //      }
-
-      if (writes.size() > 1) {
+      if (writes.size() >= 1) {
         auto first_ex = writes[0];
         auto first_expr = graph->ExpressionForId(first_ex);
 
@@ -222,6 +223,7 @@ inline OptimizationPassSummary ForwardFlow(ExpressionGraph* graph) {
 inline OptimizationPassSummary ToPartialSSA(ExpressionGraph* graph) {
   OptimizationPassSummary summary;
   summary.optimization_pass_name = "ToPartialSSA";
+  return summary;
   summary.start();
 
   ExpressionDependencies expr_dep(*graph);

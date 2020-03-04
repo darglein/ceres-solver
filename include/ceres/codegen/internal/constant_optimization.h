@@ -164,8 +164,6 @@ inline OptimizationPassSummary ConstantFolding(ExpressionGraph* graph) {
       continue;
     }
 
-    continue;
-
     // Evaluate + replace by compile time constant
     switch (expr.type()) {
       case ExpressionType::ASSIGNMENT: {

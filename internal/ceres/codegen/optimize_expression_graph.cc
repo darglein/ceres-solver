@@ -121,7 +121,7 @@ OptimizeExpressionGraphSummary OptimizeExpressionGraph(
       summary.summaries.push_back(pass_summary);
     }
     CHECK(CheckForwardArguments(graph));
-#if 1
+
     {
       auto pass_summary = ConstantFolding(graph);
       changed |= pass_summary.expression_graph_changed;
@@ -129,10 +129,6 @@ OptimizeExpressionGraphSummary OptimizeExpressionGraph(
     }
     CHECK(CheckForwardArguments(graph));
 
-#endif
-
-#if 0
-#endif
     if (!changed) {
       break;
     }
@@ -147,7 +143,7 @@ OptimizeExpressionGraphSummary SuperOptimize(
   auto a1 = OptimizeExpressionGraph(options, graph);
   CHECK(CheckForwardArguments(graph));
   //  return OptimizeExpressionGraphSummary();
-  //  return a1;
+  return a1;
   CHECK(CheckForwardArguments(graph));
   Reorder(graph, true, "*");
   Reorder(graph, true, "+");

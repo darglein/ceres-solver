@@ -257,9 +257,9 @@ static OptimizationPassSummary SortCompileTimeConstants(
 OptimizationPassSummary MergeConstants(ExpressionGraph* graph) {
   ConstantsToSSA(graph);
 
-  //  OptimizationPassSummary summary1 = MoveConstantsToBeginning(graph);
-  //  OptimizationPassSummary summary2 = MergeCompileTimeConstants(graph);
-  //  SortCompileTimeConstants(graph);
+  OptimizationPassSummary summary1 = MoveConstantsToBeginning(graph);
+  OptimizationPassSummary summary2 = MergeCompileTimeConstants(graph);
+  SortCompileTimeConstants(graph);
   //  OptimizationPassSummary combined;
   //  combined.expression_graph_changed =
   //      summary1.expression_graph_changed | summary2.expression_graph_changed;

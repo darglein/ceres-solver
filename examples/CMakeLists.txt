@@ -72,6 +72,19 @@ target_link_libraries(robust_curve_fitting ceres)
 add_executable(simple_bundle_adjuster simple_bundle_adjuster.cc)
 target_link_libraries(simple_bundle_adjuster ceres)
 
+find_package(Ceres REQUIRED)
+add_executable(codegen_helloworld helloworld_codegen.cc)
+
+
+
+
+
+
+
+
+# Link ceres and the generater target to the executable
+target_link_libraries(codegen_helloworld ceres)
+
 if(CODE_GENERATION)
   include(CeresCodeGeneration)
   ceres_generate_cost_function_implementation_for_functor(

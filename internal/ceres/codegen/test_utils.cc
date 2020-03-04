@@ -47,7 +47,6 @@ std::pair<std::vector<double>, std::vector<double> > EvaluateCostFunction(
     total_num_parameters += block_size;
   }
 
-  std::vector<const double*> params = _params.Pointer();
   std::vector<double> residuals(num_residuals, 0);
   std::vector<double> jacobians_array(num_residuals * total_num_parameters, 0);
   std::vector<double*> jacobians(num_parameter_blocks);
@@ -57,7 +56,7 @@ std::pair<std::vector<double>, std::vector<double> > EvaluateCostFunction(
     jacobians[i] = &jacobians_array[k * num_residuals];
   }
 
-  cost_function->Evaluate(params.data(), residuals.data(), jacobians.data());
+  cost_function->Evaluate(_params.Params(), residuals.data(), jacobians.data());
 
   return std::make_pair(residuals, jacobians_array);
 }

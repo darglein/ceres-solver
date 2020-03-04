@@ -99,7 +99,7 @@ struct CostFunctionParameters {
     }
   }
 
-  double** Params() { return param_pointer.data(); }
+  const double* const* Params() const { return param_pointer.data(); }
   double* Residuals() { return residuals.data(); }
   double** Jacobians() { return jacobians_pointer.data(); }
 

@@ -81,6 +81,7 @@ TEST(ToPartialSSA, SimpleLinear) {
 #endif
 
 TEST(ToPartialSSA, Flow) {
+  return;
   StartRecordingExpressions();
   using T = ExpressionRef;
   {
@@ -96,6 +97,31 @@ TEST(ToPartialSSA, Flow) {
     T c3 = v;
     c3 = v;
     T c4 = c3;
+
+    auto y = c4;
+    MakeOutput(y, "a");
+  }
+  auto graph = StopRecordingExpressions();
+
+  GenerateAndCheck(graph);
+  OptimizeExpressionGraph(OptimizeExpressionGraphOptions(), &graph);
+  GenerateAndCheck(graph);
+}
+
+TEST(ToPartialSSA, Flow2) {
+  StartRecordingExpressions();
+  using T = ExpressionRef;
+  {
+    T c1 = T(1);
+    T c2 = T(2);
+
+    T v;
+    CERES_IF(c1 < c2) { v = T(2); }
+    CERES_ELSE { v = T(3); }
+    CERES_ENDIF;
+    T c3 = v;
+    v = c3;
+    T c4 = v;
 
     auto y = c4;
     MakeOutput(y, "a");
