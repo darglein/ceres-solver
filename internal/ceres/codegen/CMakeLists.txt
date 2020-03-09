@@ -103,9 +103,6 @@ if (BUILD_TESTING AND GFLAGS)
     LogicalFunctions Branches
     )
 
-  generate_test_functor(Test autodiff_codegen_test2.h)
-  ceres_test(autodiff_codegen_small Test)
-
   generate_test_functor(DisneyBRDF brdf_cost_function.h)
   ceres_test(brdf DisneyBRDF)
 
@@ -116,9 +113,8 @@ if (BUILD_TESTING AND GFLAGS)
   generate_test_functor(Residual4Param gen_autodiff_test_functors.h)
   ceres_test(gen_autodiff Projective Residual1Param Residual2Param Residual3Param Residual4Param)
 
-  generate_test_functor(RotatePoint snavely_reprojection_error.h)
   generate_test_functor(SnavelyReprojectionErrorGen snavely_reprojection_error.h)
-  ceres_test(gen_reprojection_error RotatePoint SnavelyReprojectionErrorGen)
+  ceres_test(gen_reprojection_error SnavelyReprojectionErrorGen)
 endif()
 
 if (BUILD_BENCHMARKS)
@@ -129,9 +125,25 @@ if (BUILD_BENCHMARKS)
 
   add_executable(gen_ba_benchmark gen_ba_benchmark.cc)
   add_dependencies_to_benchmark(gen_ba_benchmark SnavelyReprojectionErrorGen)
-  
+
+  add_executable(gen_ba_benchmark_fast_math gen_ba_benchmark.cc)
+  add_dependencies_to_benchmark(gen_ba_benchmark_fast_math SnavelyReprojectionErrorGen)
+  target_compile_options(gen_ba_benchmark_fast_math PRIVATE -ffast-math)
+
   add_executable(brdf_benchmark brdf_benchmark.cc)
   add_dependencies_to_benchmark(brdf_benchmark DisneyBRDF)
+
+  add_executable(brdf_benchmark_fast_math brdf_benchmark.cc)
+  add_dependencies_to_benchmark(brdf_benchmark_fast_math DisneyBRDF)
+  target_compile_options(brdf_benchmark_fast_math PRIVATE -ffast-math)
+
+#  target_compile_options(brdf_benchmark_fast_math PRIVATE -fno-math-errno)
+#  target_compile_options(brdf_benchmark_fast_math PRIVATE -fno-honor-nans)
+#  target_compile_options(brdf_benchmark_fast_math PRIVATE -fassociative-math)
+#  target_compile_options(brdf_benchmark_fast_math PRIVATE -fno-signed-zeros)
+
+#  target_compile_options(brdf_benchmark_fast_math PRIVATE -fno-honor-infinities)
+#  target_compile_options(brdf_benchmark_fast_math PRIVATE -fno-trapping-math)
 
   generate_test_functor(NeuralBACost network_cost_function.h)
   add_executable(network_benchmark network_benchmark.cc)

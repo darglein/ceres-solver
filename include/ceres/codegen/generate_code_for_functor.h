@@ -58,12 +58,12 @@ std::vector<std::string> GenerateCodeForFunctor(
 
   // TODO(darius): Once the optimizer is in place, call it from
   // here to optimize the code before generating.
-  internal::OptimizeExpressionGraphOptions optimization_options;
-  auto summary_residual =
-      internal::SuperOptimize(optimization_options, &residual_graph);
-  auto summary_jacobian = internal::SuperOptimize(optimization_options,
-                                                  &residual_and_jacobian_graph);
-  std::cout << summary_jacobian << std::endl;
+  //  internal::OptimizeExpressionGraphOptions optimization_options;
+  //  auto summary_residual =
+  //      internal::SuperOptimize(optimization_options, &residual_graph);
+  //  auto summary_jacobian = internal::SuperOptimize(optimization_options,
+  //                                                  &residual_and_jacobian_graph);
+  //  std::cout << summary_jacobian << std::endl;
 
   // We have the optimized code of the cost functor stored in the
   // ExpressionGraphs. Now we generate C++ code for it and place it line-by-line

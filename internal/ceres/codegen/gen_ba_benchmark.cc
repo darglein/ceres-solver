@@ -27,7 +27,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 // Authors: sameeragarwal@google.com (Sameer Agarwal)
-
+//#define EIGEN_DONT_VECTORIZE
 #include <memory>
 
 #include "benchmark/benchmark.h"

@@ -95,7 +95,7 @@ OptimizeExpressionGraphSummary OptimizeExpressionGraph(
     }
 
     {
-      auto pass_summary = ZeroOnePropagation(graph, false);
+      auto pass_summary = ZeroOnePropagation(graph, true);
       changed |= pass_summary.expression_graph_changed;
       summary.summaries.push_back(pass_summary);
     }
@@ -108,7 +108,7 @@ OptimizeExpressionGraphSummary OptimizeExpressionGraph(
       summary.summaries.push_back(pass_summary);
     }
 
-    {
+    if (0) {
       auto pass_summary = SortArguments(graph);
       changed |= pass_summary.expression_graph_changed;
       summary.summaries.push_back(pass_summary);
@@ -140,9 +140,9 @@ OptimizeExpressionGraphSummary OptimizeExpressionGraph(
 OptimizeExpressionGraphSummary SuperOptimize(
     const OptimizeExpressionGraphOptions& options, ExpressionGraph* graph) {
   //  return OptimizeExpressionGraph(options, graph);
+  //    return OptimizeExpressionGraphSummary();
   auto a1 = OptimizeExpressionGraph(options, graph);
   CHECK(CheckForwardArguments(graph));
-  //  return OptimizeExpressionGraphSummary();
   return a1;
   CHECK(CheckForwardArguments(graph));
   Reorder(graph, true, "*");

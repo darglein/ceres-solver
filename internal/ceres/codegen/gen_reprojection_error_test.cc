@@ -43,15 +43,6 @@ namespace ceres {
 
 namespace examples {
 
-TEST(AutodiffCodeGen, RotatePoint) {
-  CostFunction* cost_function = new test::RotatePoint();
-  using CostFunctorType = internal::CostFunctionToFunctor<test::RotatePoint>;
-  CostFunction* cost_function_ad =
-      new ceres::AutoDiffCostFunction<CostFunctorType, 2, 8>(
-          new CostFunctorType());
-  ceres::internal::CompareCostFunctions(cost_function, cost_function_ad, 1, 0);
-}
-
 TEST(AutodiffCodeGen, SnavelyReprojectionError) {
   CostFunction* cost_function = new test::SnavelyReprojectionErrorGen();
   using CostFunctorType =
