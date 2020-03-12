@@ -39,16 +39,7 @@
 
 namespace ceres {
 
-static void test(double x) {
-  double y = sqrt(x);
-
-  std::cout << y << std::endl;
-
-  exit(0);
-}
-
 static void BM_DisneyAutoDiff(benchmark::State& state) {
-  test(-2 + state.range(0));
   using DisneyAD = ceres::internal::CostFunctionToFunctor<test::DisneyBRDF>;
 
   double parameter_block1[] = {1., 2., 3., 4., 5., 6., 6., 6., 6., 6.};
@@ -103,7 +94,7 @@ static void BM_DisneyAnalytic(benchmark::State& state) {
 // BENCHMARK(BM_DisneyAutoDiff)->ArgName("Residual")->Arg(0);
 BENCHMARK(BM_DisneyAutoDiff)->ArgName("Residual+Jacobian")->Arg(1);
 // BENCHMARK(BM_DisneyCodeGen)->ArgName("Residual")->Arg(0);
-BENCHMARK(BM_DisneyAnalytic)->ArgName("Residual+Jacobian")->Arg(1);
+// BENCHMARK(BM_DisneyAnalytic)->ArgName("Residual+Jacobian")->Arg(1);
 BENCHMARK(BM_DisneyCodeGen)->ArgName("Residual+Jacobian")->Arg(1);
 // BENCHMARK(BM_DisneyAnalytic)->ArgName("Residual")->Arg(0);
 

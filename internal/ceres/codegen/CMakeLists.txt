@@ -119,6 +119,22 @@ endif()
 
 if (BUILD_BENCHMARKS)
 
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    list(APPEND CERES_BENCHMARK_FLAGS "-march=native")
+    list(APPEND CERES_BENCHMARK_FLAGS "-fno-math-errno" "-fno-trapping-math" "-fassociative-math" "-fno-signed-zeros" "-ffp-contract=fast")
+    list(APPEND CERES_BENCHMARK_FLAGS "-ffinite-math-only")
+  endif()
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    list(APPEND CERES_BENCHMARK_FLAGS "-march=native")
+    list(APPEND CERES_BENCHMARK_FLAGS "-fno-math-errno" "-fno-trapping-math" "-fassociative-math" "-fno-signed-zeros" "-ffp-contract=fast")
+    list(APPEND CERES_BENCHMARK_FLAGS "-fno-honor-infinities" "-fno-honor-nans")
+  endif()
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    list(APPEND CERES_BENCHMARK_FLAGS "-march=native")
+    list(APPEND CERES_BENCHMARK_FLAGS "-fno-math-errno" "-fno-trapping-math" "-fassociative-math" "-fno-signed-zeros" "-ffp-contract=fast")
+    list(APPEND CERES_BENCHMARK_FLAGS "-fno-honor-infinities" "-fno-honor-nans")
+  endif()
+
   generate_test_functor(Rat43CostFunctor rat43.h)
   add_executable(gen_rat43_benchmark gen_rat43_benchmark.cc)
   add_dependencies_to_benchmark(gen_rat43_benchmark Rat43CostFunctor)
@@ -128,24 +144,30 @@ if (BUILD_BENCHMARKS)
 
   add_executable(gen_ba_benchmark_fast_math gen_ba_benchmark.cc)
   add_dependencies_to_benchmark(gen_ba_benchmark_fast_math SnavelyReprojectionErrorGen)
-  target_compile_options(gen_ba_benchmark_fast_math PRIVATE -ffast-math)
+  target_compile_options(gen_ba_benchmark_fast_math PRIVATE ${CERES_BENCHMARK_FLAGS})
 
   add_executable(brdf_benchmark brdf_benchmark.cc)
   add_dependencies_to_benchmark(brdf_benchmark DisneyBRDF)
 
   add_executable(brdf_benchmark_fast_math brdf_benchmark.cc)
   add_dependencies_to_benchmark(brdf_benchmark_fast_math DisneyBRDF)
-  target_compile_options(brdf_benchmark_fast_math PRIVATE -ffast-math)
+  target_compile_options(brdf_benchmark_fast_math PRIVATE ${CERES_BENCHMARK_FLAGS})
 
-#  target_compile_options(brdf_benchmark_fast_math PRIVATE -fno-math-errno)
-#  target_compile_options(brdf_benchmark_fast_math PRIVATE -fno-honor-nans)
-#  target_compile_options(brdf_benchmark_fast_math PRIVATE -fassociative-math)
-#  target_compile_options(brdf_benchmark_fast_math PRIVATE -fno-signed-zeros)
+  #  target_compile_options(brdf_benchmark_fast_math PRIVATE -fno-math-errno)
+  #  target_compile_options(brdf_benchmark_fast_math PRIVATE -fno-honor-nans)
+  #  target_compile_options(brdf_benchmark_fast_math PRIVATE -fassociative-math)
+  #  target_compile_options(brdf_benchmark_fast_math PRIVATE -fno-signed-zeros)
 
-#  target_compile_options(brdf_benchmark_fast_math PRIVATE -fno-honor-infinities)
-#  target_compile_options(brdf_benchmark_fast_math PRIVATE -fno-trapping-math)
+  #  target_compile_options(brdf_benchmark_fast_math PRIVATE -fno-honor-infinities)
+  #  target_compile_options(brdf_benchmark_fast_math PRIVATE -fno-trapping-math)
 
   generate_test_functor(NeuralBACost network_cost_function.h)
+
   add_executable(network_benchmark network_benchmark.cc)
-  add_dependencies_to_benchmark(network_benchmark NeuralBACost)
+  add_dependencies_to_benchmark(network_benchmark ceres NeuralBACost)
+
+  add_executable(network_benchmark_fast_math network_benchmark.cc)
+  add_dependencies_to_benchmark(network_benchmark_fast_math ceres NeuralBACost)
+  target_compile_options(network_benchmark_fast_math PRIVATE ${CERES_BENCHMARK_FLAGS})
+
 endif()
