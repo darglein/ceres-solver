@@ -94,7 +94,7 @@ static void BM_DisneyAnalytic(benchmark::State& state) {
 // BENCHMARK(BM_DisneyAutoDiff)->ArgName("Residual")->Arg(0);
 BENCHMARK(BM_DisneyAutoDiff)->ArgName("Residual+Jacobian")->Arg(1);
 // BENCHMARK(BM_DisneyCodeGen)->ArgName("Residual")->Arg(0);
-// BENCHMARK(BM_DisneyAnalytic)->ArgName("Residual+Jacobian")->Arg(1);
+BENCHMARK(BM_DisneyAnalytic)->ArgName("Residual+Jacobian")->Arg(1);
 BENCHMARK(BM_DisneyCodeGen)->ArgName("Residual+Jacobian")->Arg(1);
 // BENCHMARK(BM_DisneyAnalytic)->ArgName("Residual")->Arg(0);
 
