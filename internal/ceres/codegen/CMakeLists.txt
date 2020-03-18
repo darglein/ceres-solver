@@ -128,7 +128,10 @@ if (BUILD_BENCHMARKS)
     list(APPEND CERES_BENCHMARK_FLAGS "-march=native")
     list(APPEND CERES_BENCHMARK_FLAGS "-fno-math-errno" "-fno-trapping-math" "-fassociative-math" "-fno-signed-zeros" "-ffp-contract=fast")
     list(APPEND CERES_BENCHMARK_FLAGS "-fno-honor-infinities" "-fno-honor-nans")
+    list(APPEND CERES_BENCHMARK_FLAGS "-mllvm" "-inline-threshold=6000000")
+
   endif()
+
   if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     list(APPEND CERES_BENCHMARK_FLAGS "-march=native")
     list(APPEND CERES_BENCHMARK_FLAGS "-fno-math-errno" "-fno-trapping-math" "-fassociative-math" "-fno-signed-zeros" "-ffp-contract=fast")

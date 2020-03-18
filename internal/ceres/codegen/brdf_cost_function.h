@@ -5,26 +5,11 @@
 
 #include "ceres/codegen/codegen_cost_function.h"
 namespace test {
-struct DisneyBRDF : public ceres::CodegenCostFunction<3, 10> {
-  template <typename T>
-  inline T lerp(const T& a, const T& b, const T& u) const {
-    return a + u * (b - a);
-  }
 
-  template <typename Derived1, typename Derived2>
-  typename Derived1::PlainObject lerp(const Eigen::MatrixBase<Derived1>& a,
-                                      const Eigen::MatrixBase<Derived2>& b,
-                                      typename Derived1::Scalar alpha) const {
-    return (typename Derived1::Scalar(1) - alpha) * a + alpha * b;
-  }
-
-  template <typename T>
-  inline T sqr(const T& x) const {
-    return x * x;
-  }
-
+class DisneyBRDF : public ceres::CodegenCostFunction<3, 10> {
+ public:
   DisneyBRDF() {
-    C_ = Eigen::Vector3d(0.1, 0.2, 0.3);
+    base_color_ = Eigen::Vector3d(0.1, 0.2, 0.3);
     N_ = Eigen::Vector3d(-0.1, 0.5, 0.2).normalized();
     V_ = Eigen::Vector3d(0.5, -0.2, 0.9).normalized();
     L_ = Eigen::Vector3d(-0.3, 0.4, -0.3).normalized();
@@ -32,30 +17,28 @@ struct DisneyBRDF : public ceres::CodegenCostFunction<3, 10> {
     Y_ = Eigen::Vector3d(0.2, -0.2, -0.2).normalized();
   }
 
-  Eigen::Vector3d C_, N_, V_, L_, X_, Y_;
-
   template <typename T>
-  bool operator()(const T* const params, T* residual) const {
+  bool operator()(const T* const material, T* residual) const {
     using ceres::Ternary;
-    T metallic = params[0];
-    T subsurface = params[1];
-    T specular = params[2];
-    T roughness = params[3];
-    T specularTint = params[4];
-    T anisotropic = params[5];
-    T sheen = params[6];
-    T sheenTint = params[7];
-    T clearcoat = params[8];
-    T clearcoatGloss = params[9];
+    T metallic = material[0];
+    T subsurface = material[1];
+    T specular = material[2];
+    T roughness = material[3];
+    T specularTint = material[4];
+    T anisotropic = material[5];
+    T sheen = material[6];
+    T sheenTint = material[7];
+    T clearcoat = material[8];
+    T clearcoatGloss = material[9];
 
     using Vec2 = Eigen::Matrix<T, 2, 1>;
     using Vec3 = Eigen::Matrix<T, 3, 1>;
 
     Vec3 C, N, V, L, X, Y;
 
-    C(0) = CERES_LOCAL_VARIABLE(T, C_(0));
-    C(1) = CERES_LOCAL_VARIABLE(T, C_(1));
-    C(2) = CERES_LOCAL_VARIABLE(T, C_(2));
+    C(0) = CERES_LOCAL_VARIABLE(T, base_color_(0));
+    C(1) = CERES_LOCAL_VARIABLE(T, base_color_(1));
+    C(2) = CERES_LOCAL_VARIABLE(T, base_color_(2));
 
     N(0) = CERES_LOCAL_VARIABLE(T, N_(0));
     N(1) = CERES_LOCAL_VARIABLE(T, N_(1));
@@ -119,8 +102,6 @@ struct DisneyBRDF : public ceres::CodegenCostFunction<3, 10> {
     const T aspct = aspect(anisotropic);
     const T axTemp = sqr(roughness) / aspct;
     const T ayTemp = sqr(roughness) * aspct;
-    //    const T ax = axTemp < eps ? eps : axTemp;
-    //    const T ay = ayTemp < eps ? eps : ayTemp;
     const T ax = Ternary(axTemp < eps, eps, axTemp);
     const T ay = Ternary(ayTemp < eps, eps, ayTemp);
     const T Ds = GTR2_aniso(NdotH, HdotX, HdotY, ax, ay);
@@ -198,7 +179,27 @@ struct DisneyBRDF : public ceres::CodegenCostFunction<3, 10> {
                    sqr(sqr(HdotX / ax) + sqr(HdotY / ay) + NdotH * NdotH));
   }
 
+  template <typename T>
+  inline T lerp(const T& a, const T& b, const T& u) const {
+    return a + u * (b - a);
+  }
+
+  template <typename Derived1, typename Derived2>
+  typename Derived1::PlainObject lerp(const Eigen::MatrixBase<Derived1>& a,
+                                      const Eigen::MatrixBase<Derived2>& b,
+                                      typename Derived1::Scalar alpha) const {
+    return (typename Derived1::Scalar(1) - alpha) * a + alpha * b;
+  }
+
+  template <typename T>
+  inline T sqr(const T& x) const {
+    return x * x;
+  }
+
 #include "tests/disneybrdf.h"
+
+ private:
+  Eigen::Vector3d base_color_, N_, V_, L_, X_, Y_;
 };
 
 }  // namespace test

@@ -170,9 +170,10 @@ namespace internal {
 // is what would get put in dst if N was 3, offset was 3, and the jet type JetT
 // was 8-dimensional.
 template <int Offset, int N, typename T, typename JetT>
-inline void Make1stOrderPerturbation(const T* src, JetT* dst) {
+EIGEN_ALWAYS_INLINE void Make1stOrderPerturbation(const T* src, JetT* dst) {
   DCHECK(src);
   DCHECK(dst);
+#pragma unroll
   for (int j = 0; j < N; ++j) {
     dst[j].a = src[j];
     dst[j].v.setZero();
@@ -193,12 +194,14 @@ template <typename Seq, int ParameterIdx = 0, int Offset = 0>
 struct Make1stOrderPerturbations;
 
 template <int N, int... Ns, int ParameterIdx, int Offset>
-struct Make1stOrderPerturbations<integer_sequence<int, N, Ns...>, ParameterIdx,
+struct Make1stOrderPerturbations<integer_sequence<int, N, Ns...>,
+                                 ParameterIdx,
                                  Offset> {
   template <typename T, typename JetT>
   static void Apply(T const* const* parameters, JetT* x) {
     Make1stOrderPerturbation<Offset, N>(parameters[ParameterIdx], x + Offset);
-    Make1stOrderPerturbations<integer_sequence<int, Ns...>, ParameterIdx + 1,
+    Make1stOrderPerturbations<integer_sequence<int, Ns...>,
+                              ParameterIdx + 1,
                               Offset + N>::Apply(parameters, x);
   }
 };
@@ -213,7 +216,7 @@ struct Make1stOrderPerturbations<integer_sequence<int>, ParameterIdx, Total> {
 // Takes the 0th order part of src, assumed to be a Jet type, and puts it in
 // dst. This is used to pick out the "vector" part of the extended y.
 template <typename JetT, typename T>
-inline void Take0thOrderPart(int M, const JetT* src, T dst) {
+EIGEN_ALWAYS_INLINE void Take0thOrderPart(int M, const JetT* src, T dst) {
   DCHECK(src);
   for (int i = 0; i < M; ++i) {
     dst[i] = src[i].a;
@@ -223,12 +226,17 @@ inline void Take0thOrderPart(int M, const JetT* src, T dst) {
 // Takes N 1st order parts, starting at index N0, and puts them in the M x N
 // matrix 'dst'. This is used to pick out the "matrix" parts of the extended y.
 template <int N0, int N, typename JetT, typename T>
-inline void Take1stOrderPart(const int M, const JetT* src, T* dst) {
+EIGEN_ALWAYS_INLINE void Take1stOrderPart(const int M,
+                                          const JetT* src,
+                                          T* dst) {
   DCHECK(src);
   DCHECK(dst);
+#pragma unroll
   for (int i = 0; i < M; ++i) {
-    Eigen::Map<Eigen::Matrix<T, N, 1>>(dst + N * i, N) =
-        src[i].v.template segment<N>(N0);
+#pragma unroll
+    for (int j = 0; j < N; ++j) {
+      dst[N * i + j] = src[i].v[j + N0];
+    }
   }
 }
 
@@ -253,14 +261,16 @@ template <typename Seq, int ParameterIdx = 0, int Offset = 0>
 struct Take1stOrderParts;
 
 template <int N, int... Ns, int ParameterIdx, int Offset>
-struct Take1stOrderParts<integer_sequence<int, N, Ns...>, ParameterIdx,
+struct Take1stOrderParts<integer_sequence<int, N, Ns...>,
+                         ParameterIdx,
                          Offset> {
   template <typename JetT, typename T>
   static void Apply(int num_outputs, JetT* output, T** jacobians) {
     if (jacobians[ParameterIdx]) {
       Take1stOrderPart<Offset, N>(num_outputs, output, jacobians[ParameterIdx]);
     }
-    Take1stOrderParts<integer_sequence<int, Ns...>, ParameterIdx + 1,
+    Take1stOrderParts<integer_sequence<int, Ns...>,
+                      ParameterIdx + 1,
                       Offset + N>::Apply(num_outputs, output, jacobians);
   }
 };
@@ -269,31 +279,34 @@ struct Take1stOrderParts<integer_sequence<int, N, Ns...>, ParameterIdx,
 template <int ParameterIdx, int Offset>
 struct Take1stOrderParts<integer_sequence<int>, ParameterIdx, Offset> {
   template <typename T, typename JetT>
-  static void Apply(int /* NOT USED*/, JetT* /* NOT USED*/,
+  static void Apply(int /* NOT USED*/,
+                    JetT* /* NOT USED*/,
                     T** /* NOT USED */) {}
 };
 
 template <typename ParameterDims, typename Functor, typename T>
 inline bool AutoDifferentiate(const Functor& functor,
-                              T const *const *parameters,
+                              T const* const* parameters,
                               int num_outputs,
                               T* function_value,
                               T** jacobians) {
   DCHECK_GT(num_outputs, 0);
 
   typedef Jet<T, ParameterDims::kNumParameters> JetT;
-  FixedArray<JetT, (256 * 7) / sizeof(JetT)> x(ParameterDims::kNumParameters +
-                                               num_outputs);
+  FixedArray<JetT, (256 * 7) / sizeof(JetT)> out(num_outputs);
+
+  std::array<JetT, ParameterDims::kNumParameters> x;
 
   using Parameters = typename ParameterDims::Parameters;
 
   // These are the positions of the respective jets in the fixed array x.
   std::array<JetT*, ParameterDims::kNumParameterBlocks> unpacked_parameters =
       ParameterDims::GetUnpackedParameters(x.data());
-  JetT* output = x.data() + ParameterDims::kNumParameters;
+  JetT* output = out.data();
 
   // Invalidate the output Jets, so that we can detect if the user
   // did not assign values to all of them.
+#pragma unroll
   for (int i = 0; i < num_outputs; ++i) {
     output[i].a = kImpossibleValue;
     output[i].v.setConstant(kImpossibleValue);
@@ -301,8 +314,48 @@ inline bool AutoDifferentiate(const Functor& functor,
 
   Make1stOrderPerturbations<Parameters>::Apply(parameters, x.data());
 
-  if (!VariadicEvaluate<ParameterDims>(functor, unpacked_parameters.data(),
-                                       output)) {
+  if (!VariadicEvaluate<ParameterDims>(
+          functor, unpacked_parameters.data(), output)) {
+    return false;
+  }
+
+  Take0thOrderPart(num_outputs, output, function_value);
+  Take1stOrderParts<Parameters>::Apply(num_outputs, output, jacobians);
+
+  return true;
+}
+
+template <typename ParameterDims, int num_outputs, typename Functor, typename T>
+inline bool AutoDifferentiateStatic(const Functor& functor,
+                                    T const* const* parameters,
+                                    T* function_value,
+                                    T** jacobians) {
+  DCHECK_GT(num_outputs, 0);
+
+  typedef Jet<T, ParameterDims::kNumParameters> JetT;
+
+  std::array<JetT, num_outputs> out;
+  std::array<JetT, ParameterDims::kNumParameters> x;
+
+  using Parameters = typename ParameterDims::Parameters;
+
+  // These are the positions of the respective jets in the fixed array x.
+  std::array<JetT*, ParameterDims::kNumParameterBlocks> unpacked_parameters =
+      ParameterDims::GetUnpackedParameters(x.data());
+  JetT* output = out.data();
+
+  // Invalidate the output Jets, so that we can detect if the user
+  // did not assign values to all of them.
+#pragma unroll
+  for (int i = 0; i < num_outputs; ++i) {
+    output[i].a = kImpossibleValue;
+    output[i].v.setConstant(kImpossibleValue);
+  }
+
+  Make1stOrderPerturbations<Parameters>::Apply(parameters, x.data());
+
+  if (!VariadicEvaluate<ParameterDims>(
+          functor, unpacked_parameters.data(), output)) {
     return false;
   }
 

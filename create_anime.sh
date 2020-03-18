@@ -1,5 +1,5 @@
-export CXX=g++-9
-# export CXX=clang++-9
+# export CXX=g++-9
+export CXX=clang++-9
 rm -r build
 mkdir build
 cd build

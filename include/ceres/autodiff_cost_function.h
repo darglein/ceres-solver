@@ -191,13 +191,18 @@ class AutoDiffCostFunction : public SizedCostFunction<kNumResiduals, Ns...> {
       return internal::VariadicEvaluate<ParameterDims>(
           *functor_, parameters, residuals);
     }
-    return internal::AutoDifferentiate<ParameterDims>(
-        *functor_,
-        parameters,
-        SizedCostFunction<kNumResiduals, Ns...>::num_residuals(),
-        residuals,
-        jacobians);
-  };
+    if (kNumResiduals == DYNAMIC) {
+      return internal::AutoDifferentiate<ParameterDims>(
+          *functor_,
+          parameters,
+          SizedCostFunction<kNumResiduals, Ns...>::num_residuals(),
+          residuals,
+          jacobians);
+    } else {
+      return internal::AutoDifferentiateStatic<ParameterDims, kNumResiduals>(
+          *functor_, parameters, residuals, jacobians);
+    }
+  }
 
  private:
   std::unique_ptr<CostFunctor> functor_;
